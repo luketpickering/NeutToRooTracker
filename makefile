@@ -11,7 +11,7 @@ TOBJSO := $(TOBJS:.cxx=.so)
 TARGET := NeutToRooTracker.exe
 TARGETSRC := $(TARGET:.exe=.cxx)
 
-NEUTCLASSDIR := ../../neutclass
+NEUTCLASSDIR := $(NEUTCLASSLOC)
 NEUTDEPSO := neutvect.so neutpart.so neutfsipart.so neutfsivert.so neutvtx.so
 
 ROOTCFLAGS := `$(RC) --cflags`

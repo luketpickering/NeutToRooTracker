@@ -22,6 +22,7 @@ std::ostream& operator<<(std::ostream& o, const TLorentzVector& tlv){
 }
 
 std::string outfname;
+bool ObjectOutput = false;
 int verbosity = 0;
 
 template<typename T, size_t N>
@@ -63,16 +64,20 @@ int NeutToRooTracker(const char* InputFileDescriptor){
   TFile* outFile = new TFile(outfname.c_str(),"CREATE");
 
   if(!outFile->IsOpen()){
-    std::cerr << "Couldn't open output file: " << outfname <<" leaving in "
-    "a strop." << std::endl;
+    std::cerr << "[ERROR]: Couldn't open output file: " << outfname
+    << std::endl;
     return 4;
   } else {
     std::cout << "Created output file: " << outFile->GetName() << std::endl;
   }
 
   TTree* rooTrackerTree = new TTree("nRooTracker","Pure NEUT RooTracker");
-  NRooTrackerVtx* outRooTracker = 0;
-  rooTrackerTree->Branch("nRooTracker",&outRooTracker,32000);
+  NRooTrackerVtx* outRooTracker = new NRooTrackerVtx();
+  if(ObjectOutput){
+    rooTrackerTree->Branch("nRooTracker", &outRooTracker);
+  } else {
+    outRooTracker->AddBranches(rooTrackerTree);
+  }
 
   for(long entryNum = 0; entryNum < NEntries; ++entryNum){
 
@@ -92,7 +97,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     //Event Level
     std::stringstream ss("");
     ss << vector->Mode;
-    outRooTracker->EvtCode = ss.str();
+    (*outRooTracker->EvtCode) = ss.str();
     outRooTracker->EvtNum = vector->EventNo;
     outRooTracker->EvtXSec = vector->Totcrs;
 
@@ -139,12 +144,6 @@ int NeutToRooTracker(const char* InputFileDescriptor){
 
     //Fill the particle info
     outRooTracker->StdHepN = NGoodStatus+1;
-    outRooTracker->StdHepPdg = new int[outRooTracker->StdHepN];
-    outRooTracker->StdHepStatus = new int[outRooTracker->StdHepN];
-    outRooTracker->StdHepFd = new int[outRooTracker->StdHepN];
-    outRooTracker->StdHepLd = new int[outRooTracker->StdHepN];
-    outRooTracker->StdHepFm = new int[outRooTracker->StdHepN];
-    outRooTracker->StdHepLm = new int[outRooTracker->StdHepN];
 
     // As in TNeutOutput, to emulate neutgeom
     // StdHepX[1] is the target
@@ -196,10 +195,10 @@ int NeutToRooTracker(const char* InputFileDescriptor){
       }
 
       //Not implemented in NEUT
-      (void)outRooTracker->StdHepP4[storageNum][kNStdHepIdxPx];
-      (void)outRooTracker->StdHepP4[storageNum][kNStdHepIdxPy];
-      (void)outRooTracker->StdHepP4[storageNum][kNStdHepIdxPz];
-      (void)outRooTracker->StdHepP4[storageNum][kNStdHepIdxE];
+      (void)outRooTracker->StdHepX4[storageNum][kNStdHepIdxX];
+      (void)outRooTracker->StdHepX4[storageNum][kNStdHepIdxY];
+      (void)outRooTracker->StdHepX4[storageNum][kNStdHepIdxZ];
+      (void)outRooTracker->StdHepX4[storageNum][kNStdHepIdxT];
       (void)outRooTracker->StdHepPolz[storageNum][kNStdHepIdxPx];
       (void)outRooTracker->StdHepPolz[storageNum][kNStdHepIdxPy];
       (void)outRooTracker->StdHepPolz[storageNum][kNStdHepIdxPz];
@@ -211,14 +210,13 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     //NEUT VCWork Particles
     //Not yet implemented.
     outRooTracker->NEnvc = 1;
-
-    outRooTracker->NEipvc = new int[outRooTracker->NEnvc];
     for(int i = 0; i < outRooTracker->NEnvc; ++i){
-      (void)outRooTracker->NEpvc[0];
+      (void)outRooTracker->NEpvc[i];
+      (void)outRooTracker->NEiorgvc[i];
+      (void)outRooTracker->NEiflgvc[i];
+      (void)outRooTracker->NEicrnvc[i];
     }
-    outRooTracker->NEiorgvc = new int[outRooTracker->NEnvc];
-    outRooTracker->NEiflgvc = new int[outRooTracker->NEnvc];
-    outRooTracker->NEicrnvc = new int[outRooTracker->NEnvc];
+
 
     //**************************************************
     //NEUT Pion FSI interaction history
@@ -226,36 +224,36 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     outRooTracker->NEnvert = 1;
 
     for(int i = 0; i < outRooTracker->NEnvert; ++i){
-      (void)outRooTracker->NEposvert[0];
+      (void)outRooTracker->NEposvert[i];
+      (void)outRooTracker->NEiflgvert[i];
     }
-    outRooTracker->NEiflgvert = new int[outRooTracker->NEnvert];
 
     outRooTracker->NEnvcvert = 1;
     for(int i = 0; i < outRooTracker->NEnvcvert; ++i){
-      (void)outRooTracker->NEdirvert[0];
+      (void)outRooTracker->NEdirvert[i];
+      (void)outRooTracker->NEabspvert[i];
+      (void)outRooTracker->NEabstpvert[i];
+      (void)outRooTracker->NEipvert[i];
+      (void)outRooTracker->NEiverti[i];
+      (void)outRooTracker->NEivertf[i];
     }
-    outRooTracker->NEabspvert = new float[outRooTracker->NEnvcvert];
-    outRooTracker->NEabstpvert = new float[outRooTracker->NEnvcvert];
-    outRooTracker->NEipvert = new int[outRooTracker->NEnvcvert];
-    outRooTracker->NEiverti = new int[outRooTracker->NEnvcvert];
-    outRooTracker->NEivertf = new int[outRooTracker->NEnvcvert];
 
     //**************************************************
     //NEUT Nucleon FSI interaction history
     //Not yet implemented
     outRooTracker->NFnvert = 1;
-    outRooTracker->NFiflag = new int[outRooTracker->NFnvert];
-    outRooTracker->NFx = new float[outRooTracker->NFnvert];
-    outRooTracker->NFy = new float[outRooTracker->NFnvert];
-    outRooTracker->NFz = new float[outRooTracker->NFnvert];
-    outRooTracker->NFpx = new float[outRooTracker->NFnvert];
-    outRooTracker->NFpy = new float[outRooTracker->NFnvert];
-    outRooTracker->NFpz = new float[outRooTracker->NFnvert];
-    outRooTracker->NFe = new float[outRooTracker->NFnvert];
-    outRooTracker->NFfirststep = new int[outRooTracker->NFnvert];
+    (void)outRooTracker->NFiflag[0];
+    (void)outRooTracker->NFx[0];
+    (void)outRooTracker->NFy[0];
+    (void)outRooTracker->NFz[0];
+    (void)outRooTracker->NFpx[0];
+    (void)outRooTracker->NFpy[0];
+    (void)outRooTracker->NFpz[0];
+    (void)outRooTracker->NFe[0];
+    (void)outRooTracker->NFfirststep[0];
 
     outRooTracker->NFnstep = 1;
-    outRooTracker->NFecms2 = new float[outRooTracker->NFnstep];
+    (void)outRooTracker->NFecms2[0];
 
     rooTrackerTree->Fill();
     if(verbosity > 1){
@@ -270,9 +268,11 @@ int NeutToRooTracker(const char* InputFileDescriptor){
 
 void SayRunLike(const char* invoke_cmd){
   std::cout << "Run like:\n " << invoke_cmd << " <input_file_descriptor>"
-   << " [output_file_name=vector.ntrac.root]"
+   << " [<output_file_name=vector.ntrac.root>] [--OutputObject]"
    << "\n\t\"input_file_descriptor\" = any string that is a valid input"
-   << "\n\t\tfor TChain::Add(const char*)." << std::endl;
+   << "\n\t\tfor TChain::Add(const char*), e.g. myinputfiles_*.root"
+   << "\n\tIf --OutputObject is specified the output tree will contain a single"
+   " branch of the type NRooTrackerVtx" << std::endl;
 }
 
 bool IsHelp(std::string helpcli){
@@ -284,13 +284,28 @@ bool IsHelp(std::string helpcli){
 
 int main(int argc, char* argv[]){
   //Too many args spoil the broth
-  if((argc > 3) || (argc == 1)){ SayRunLike(argv[0]); return 1;}
+  if((argc > 4) || (argc == 1)){ SayRunLike(argv[0]); return 1;}
   //If the user is asking for help
   if(argc == 2 && IsHelp(argv[1])){ SayRunLike(argv[0]); return 0; }
-  //If we have a specified output filename
-  if(argc == 3){ outfname = argv[2]; }
-  //Otherwise just use the default
-  else { outfname = "vector.ntrac.root"; }
+
+
+  if((std::string(argv[argc-1]) == "--OutputObject")){
+    if(argc==2){
+      std::cerr << "[ERROR]: You only specified a single argument and it was:\""
+      << argv[argc-1] << "\". You must at least include an input file descripto"
+      "r." << std::endl;
+      SayRunLike(argv[0]);
+      return 1;
+    }
+    ObjectOutput = true;
+    std::cout << "Will write output in rootracker object format." << std::endl;
+  }
+
+  if(argc == (3 + int(ObjectOutput))){
+    outfname = argv[2];
+  } else {
+    outfname = "vector.ntrac.root";
+  }
 
   int rtncode = 0;
   if((rtncode = NeutToRooTracker(argv[1]))){

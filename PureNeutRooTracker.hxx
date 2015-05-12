@@ -1,5 +1,6 @@
 #include "TObject.h"
 #include "TString.h"
+#include "TTree.h"
 
 const int kNStdHepNPmax = 100;
 const int kNStdHepIdxPx = 0;
@@ -22,6 +23,13 @@ void ClearArray(T (&arr)[N]){
   }
 }
 
+template<typename T>
+void ClearPointer(T * &arr, size_t N){
+  for(size_t i = 0; i < N; ++i){
+    arr[i] = 0;
+  }
+}
+
 template<typename T, size_t N, size_t M>
 void ClearArray2D(T (&arr)[N][M]){
   for(size_t i = 0; i < N; ++i){
@@ -30,6 +38,8 @@ void ClearArray2D(T (&arr)[N][M]){
     }
   }
 }
+
+
 
 class NRooTrackerVtx : public TObject {
 
@@ -44,59 +54,66 @@ static const int kNFMaxNucleonSteps = 2000;
 
 public:
   NRooTrackerVtx();
+  // SetStdHepN(int n);
+  // SetNEnvc(int n);
+  // SetNEnvert(int n);
+  // SetNEnvcvert(int n);
+  // SetNFnvert(int n);
+  // SetNFnstep(int n);
   void Reset();
   ~NRooTrackerVtx();
+  void AddBranches(TTree* &tree);
 
   //****************** Define the output rootracker tree branches
 
   ///generator-specific string with 'event code'
-  TString EvtCode;
+  TString* EvtCode;
   ///event num.
-  int EvtNum;
+  Int_t EvtNum;
   ///cross section for selected event (1E-38 cm2) CORRECT
-  double EvtXSec;
+  Float_t EvtXSec;
   ///cross section for selected event kinematics (1E-38 cm2 /{K^n}) CORRECT
-  double EvtDXSec;
+  Float_t EvtDXSec;
   ///weight for that event CORRECT
-  double EvtWght;
+  Float_t EvtWght;
   ///probability for that event (given cross section, path lengths, etc)
-  double EvtProb;
+  Float_t EvtProb;
   ///event vertex position in detector coord syst (SI) CORRECT
-  double EvtVtx[4];
+  Float_t EvtVtx[4];
   ///number of particles in particle array
-  int StdHepN;
+  Int_t StdHepN;
 
   //******************* stdhep-like particle array
 
   /// pdg codes (& generator specific codes for pseudoparticles)
-  int* StdHepPdg; //[StdHepN]
+  Int_t* StdHepPdg; //[StdHepN]
   /// generator-specific status code
-  int* StdHepStatus; //[StdHepN]
+  Int_t* StdHepStatus; //[StdHepN]
   /// 4-x (x, y, z, t) of particle in hit nucleus frame (fm) CORRECT
-  double StdHepX4 [kNStdHepNPmax][4];
+  Float_t StdHepX4 [kNStdHepNPmax][4];
   /// 4-p (px,py,pz,E) of particle in LAB frame (GeV) CORRECT
-  double StdHepP4 [kNStdHepNPmax][4];
+  Float_t StdHepP4 [kNStdHepNPmax][4];
   /// polarization vector CORRECT
-  double StdHepPolz [kNStdHepNPmax][3];
+  Float_t StdHepPolz [kNStdHepNPmax][3];
 
   /// first daughter
-  int* StdHepFd; //[StdHepN]
+  Int_t* StdHepFd; //[StdHepN]
   /// last daughter
-  int* StdHepLd; //[StdHepN]
+  Int_t* StdHepLd; //[StdHepN]
   /// first mother
-  int* StdHepFm; //[StdHepN]
+  Int_t* StdHepFm; //[StdHepN]
   /// last mother
-  int* StdHepLm; //[StdHepN]
+  Int_t* StdHepLm; //[StdHepN]
 
   /// NEUT native VCWORK information
   /// Number of particles
-  int NEnvc;
+  Int_t NEnvc;
   /// PDG particle code
-  int* NEipvc; //[NEnvc]
+  Int_t* NEipvc; //[NEnvc]
   /// 3-momentum (MeV/c) CORRECT
-  float NEpvc[kNEmaxvc][3];
+  Float_t NEpvc[kNEmaxvc][3];
   /// Index of parent (Fortran convention: starting at 1)
-  int* NEiorgvc; //[NEnvc]
+  Int_t* NEiorgvc; //[NEnvc]
 
   ///\brief Flag of final state
   ///\detailed Values:
@@ -110,9 +127,9 @@ public:
   /// * 7 : HADRON PRODUCTION
   /// * 8 : QUASI-ELASTIC SCATTER
   /// * 9 : FORWARD (ELASTIC-LIKE) SCATTER
-  int* NEiflgvc; //[NEnvc]
+  Int_t* NEiflgvc; //[NEnvc]
   /// Escaped nucleus (1) or not (0)
-  int* NEicrnvc; //[NEnvc]
+  Int_t* NEicrnvc; //[NEnvc]
 
 
   //******** Rest of the NEUT variables below are mainly for internal
@@ -120,24 +137,24 @@ public:
 
   ///\brief Cross section calculation variables (currently used for coherent
   ///interactions) CORRECT
-  float NEcrsx;
+  Float_t NEcrsx;
   ///\brief Cross section calculation variables (currently used for coherent
   ///interactions) CORRECT
-  float NEcrsy;
+  Float_t NEcrsy;
   ///\brief Cross section calculation variables (currently used for coherent
   ///interactions) CORRECT
-  float NEcrsz;
+  Float_t NEcrsz;
   ///\brief Cross section calculation variables (currently used for coherent
   ///interactions) CORRECT
-  float NEcrsphi;
+  Float_t NEcrsphi;
 
 
   //**************** NEUT FSIHIST pion interaction history
 
   /// Number of vertices (including production and exit points)
-  int NEnvert;
+  Int_t NEnvert;
   /// Position of vertex within nucleus (fm) CORRECT
-  float NEposvert[kNEmaxvert][3];
+  Float_t NEposvert[kNEmaxvert][3];
 
   ///\brief Interaction type
   ///\detailed Values:
@@ -149,24 +166,24 @@ public:
   /// * 7 : HADRON PRODUCTION (hi-nrg only, i.e. 70)
   /// * 8 : QUASI-ELASTIC SCATTER
   /// * 9 : FORWARD (ELASTIC-LIKE) SCATTER
-  int* NEiflgvert; //[NEnvert]
+  Int_t* NEiflgvert; //[NEnvert]
 
   /// Number of intermediate particles (including initial and final)
-  int NEnvcvert;
+  Int_t NEnvcvert;
   /// Direction of particle CORRECT
-  float NEdirvert[kNEmaxvertp][3];
+  Float_t NEdirvert[kNEmaxvertp][3];
 
 
   /// Absolute momentum in the lab frame (MeV/c) CORRECT
-  float* NEabspvert; //[NEnvcvert]
+  Float_t* NEabspvert; //[NEnvcvert]
   /// Absolute momentum in the nucleon rest frame (MeV/c) CORRECT
-  float* NEabstpvert; //[NEnvcvert]
+  Float_t* NEabstpvert; //[NEnvcvert]
   /// PDG particle code
-  int*  NEipvert; //[NEnvcvert]
+  Int_t*  NEipvert; //[NEnvcvert]
   /// Index of initial vertex (pointing to nvert array above)
-  int*  NEiverti; //[NEnvcvert]
+  Int_t*  NEiverti; //[NEnvcvert]
   /// Index of final vertex (pointing to nvert array above)
-  int*  NEivertf; //[NEnvcvert]
+  Int_t*  NEivertf; //[NEnvcvert]
 
   //**************** NEUT FSIHIST nucleon interaction history
 
@@ -187,7 +204,7 @@ public:
   /// *    only the probabilities of the scattering processes have to be
   /// *    calculated, so it is not important to know which tracks belong to
   /// *    each other.
-  int NFnvert;
+  Int_t NFnvert;
   ///\brief 4-digit flag for interaction type at i-th vertex, in the form "BNTP":
   ///\detailed Values:
   /// * N: charge nucleon propagated through nucleus (0 = neutron, 1 = proton)
@@ -205,32 +222,32 @@ public:
   /// *  - 1011 means elastic scattering of a neutron on a proton did not take
   /// *    place due to Pauli blocking
   /// \note For P=0 and P=4, "T" is without meaning and always set to 0.
-  int* NFiflag; //[NFnvert]
+  Int_t* NFiflag; //[NFnvert]
 
   /// x-component of i-th vertex position inside nucleus
-  float* NFx; //[NFnvert]
+  Float_t* NFx; //[NFnvert]
   /// y-component of i-th vertex position inside nucleus
-  float* NFy; //[NFnvert]
+  Float_t* NFy; //[NFnvert]
   /// z-component of i-th vertex position inside nucleus
-  float* NFz; //[NFnvert]
+  Float_t* NFz; //[NFnvert]
   /// x-component of momentum of nucleon leaving the i-th vertex
-  float* NFpx; //[NFnvert]
+  Float_t* NFpx; //[NFnvert]
   /// y-component of momentum of nucleon leaving the i-th vertex
-  float* NFpy; //[NFnvert]
+  Float_t* NFpy; //[NFnvert]
   /// z-component of momentum of nucleon leaving the i-th vertex
-  float* NFpz; //[NFnvert]
+  Float_t* NFpz; //[NFnvert]
   /// energy of nucleon leaving the i-th vertex
-  float* NFe; //[NFnvert]
+  Float_t* NFe; //[NFnvert]
   /// first step index of this track (to obtain the CMS energies for each step)
-  int* NFfirststep; //[NFnvert]
+  Int_t* NFfirststep; //[NFnvert]
   ///number of steps
-  int NFnstep;
+  Int_t NFnstep;
   ///CMS energy squared of collision at k-th step (i.e. before interacting).
   /// The sign of this value indicates the charge of the target nucleon:
   ///  NFecms2 > 0: proton,  NFecms2 < 0: neutron (same as "T" in NFiflag)
-  float* NFecms2; //[NFnstep]
+  Float_t* NFecms2; //[NFnstep]
 
-  TString GeneratorName;
+  TString* GeneratorName;
 
   ClassDef(NRooTrackerVtx, 1);
 };
