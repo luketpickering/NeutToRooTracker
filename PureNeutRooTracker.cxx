@@ -143,56 +143,6 @@ void NRooTrackerVtx::Reset(){
   (*GeneratorName) = "NEUT";
 }
 
-// SetStdHepN(int n){
-//   if(InVLAMode){
-//     StdHepPdg = new int[n];
-//     StdHepStatus = new int[n];
-//     StdHepFd = new int[n];
-//     StdHepLd = new int[n];
-//     StdHepFm = new int[n];
-//     StdHepLm = new int[n];
-//   }
-// }
-// SetNEnvc(int n){
-//   if(InVLAMode){
-//     NEipvc = new int[n];
-//     NEiorgvc = new int[n];
-//     NEiflgvc = new int[n];
-//     NEicrnvc = new int[n];
-//   }
-// }
-// SetNEnvert(int n){
-//   if(InVLAMode){
-//     NEiflgvert = new int[n];
-//   }
-// }
-// SetNEnvcvert(int n){
-//   if(InVLAMode){
-//     NEabspvert = new float[n];
-//     NEabstpvert = new float[n];
-//     NEipvert = new int[n];
-//     NEiverti = new int[n];
-//     NEivertf = new int[n];
-//   }
-// }
-// SetNFnvert(int n){
-//   if(InVLAMode){
-//     NFiflag = new int[n];
-//     NFx = new float[n];
-//     NFy = new float[n];
-//     NFz = new float[n];
-//     NFpx = new float[n];
-//     NFpy = new float[n];
-//     NFpz = new float[n];
-//     NFe = new float[n];
-//     NFfirststep = new int[n];
-//   }
-// }
-// SetNFnstep(int n){
-//   if(InVLAMode){
-//     NFecms2 = new float[n];
-//   }
-// }
 void NRooTrackerVtx::AddBranches(TTree* &tree){
   std::string NStdHepNPmaxstr = Int2Str(kNStdHepNPmax);
   std::string NEmaxvcstr = Int2Str(kNEmaxvc);
