@@ -5,6 +5,7 @@ RC := root-config
 TOBJS := PureNeutRooTracker.cxx
 TOBJH := $(TOBJS:.cxx=.hxx)
 TOBJDICTS := $(TOBJS:.cxx=_dict.cxx)
+TDICTHEADERSS := $(TOBJS:.cxx=_dict.h)
 TOBJLINKDEFS := $(TOBJS:.cxx=_linkdef.h)
 TOBJSO := $(TOBJS:.cxx=.so)
 
@@ -44,6 +45,7 @@ PureNeutRooTracker.so: PureNeutRooTracker.cxx PureNeutRooTracker.hxx PureNeutRoo
 
 clean:
 	rm -f $(TOBJDICTS)\
-			  $(TOBJSO)\
-			  $(TARGET)\
-			  $(NEUTDEPSO)
+              $(TDICTHEADERS)\
+              $(TOBJSO)\
+	      $(TARGET)\
+	      $(NEUTDEPSO)
