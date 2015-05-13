@@ -54,12 +54,6 @@ static const int kNFMaxNucleonSteps = 2000;
 
 public:
   NRooTrackerVtx();
-  // SetStdHepN(int n);
-  // SetNEnvc(int n);
-  // SetNEnvert(int n);
-  // SetNEnvcvert(int n);
-  // SetNFnvert(int n);
-  // SetNFnstep(int n);
   void Reset();
   ~NRooTrackerVtx();
   void AddBranches(TTree* &tree);
@@ -71,15 +65,15 @@ public:
   ///event num.
   Int_t EvtNum;
   ///cross section for selected event (1E-38 cm2) CORRECT
-  Float_t EvtXSec;
+  Double_t EvtXSec;
   ///cross section for selected event kinematics (1E-38 cm2 /{K^n}) CORRECT
-  Float_t EvtDXSec;
+  Double_t EvtDXSec;
   ///weight for that event CORRECT
-  Float_t EvtWght;
+  Double_t EvtWght;
   ///probability for that event (given cross section, path lengths, etc)
-  Float_t EvtProb;
+  Double_t EvtProb;
   ///event vertex position in detector coord syst (SI) CORRECT
-  Float_t EvtVtx[4];
+  Double_t EvtVtx[4];
   ///number of particles in particle array
   Int_t StdHepN;
 
@@ -90,11 +84,11 @@ public:
   /// generator-specific status code
   Int_t* StdHepStatus; //[StdHepN]
   /// 4-x (x, y, z, t) of particle in hit nucleus frame (fm) CORRECT
-  Float_t StdHepX4 [kNStdHepNPmax][4];
+  Double_t StdHepX4 [kNStdHepNPmax][4];
   /// 4-p (px,py,pz,E) of particle in LAB frame (GeV) CORRECT
-  Float_t StdHepP4 [kNStdHepNPmax][4];
+  Double_t StdHepP4 [kNStdHepNPmax][4];
   /// polarization vector CORRECT
-  Float_t StdHepPolz [kNStdHepNPmax][3];
+  Double_t StdHepPolz [kNStdHepNPmax][3];
 
   /// first daughter
   Int_t* StdHepFd; //[StdHepN]

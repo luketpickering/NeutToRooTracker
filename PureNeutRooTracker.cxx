@@ -153,20 +153,20 @@ void NRooTrackerVtx::AddBranches(TTree* &tree){
 
   tree->Branch("EvtCode", &EvtCode);
   tree->Branch("EvtNum", &EvtNum,"EvtNum/I");
-  tree->Branch("EvtXSec", &EvtXSec,"EvtXSec/F");
-  tree->Branch("EvtDXSec", &EvtDXSec,"EvtDXSec/F");
-  tree->Branch("EvtWght", &EvtWght,"EvtWght/F");
-  tree->Branch("EvtProb", &EvtProb,"EvtProb/F");
-  tree->Branch("EvtVtx", EvtVtx,"EvtVtx[4]/F");
+  tree->Branch("EvtXSec", &EvtXSec,"EvtXSec/D");
+  tree->Branch("EvtDXSec", &EvtDXSec,"EvtDXSec/D");
+  tree->Branch("EvtWght", &EvtWght,"EvtWght/D");
+  tree->Branch("EvtProb", &EvtProb,"EvtProb/D");
+  tree->Branch("EvtVtx", EvtVtx,"EvtVtx[4]/D");
   tree->Branch("StdHepN", &StdHepN,"StdHepN/I");
   tree->Branch("StdHepPdg", StdHepPdg,"StdHepPdg[StdHepN]/I");
   tree->Branch("StdHepStatus", StdHepStatus,"StdHepStatus[StdHepN]/I");
   tree->Branch("StdHepX4", StdHepX4,
-    ("StdHepX4["+NStdHepNPmaxstr+"][4]/F").c_str());
+    ("StdHepX4["+NStdHepNPmaxstr+"][4]/D").c_str());
   tree->Branch("StdHepP4", StdHepP4,
-    ("StdHepP4["+NStdHepNPmaxstr+"][4]/F").c_str());
+    ("StdHepP4["+NStdHepNPmaxstr+"][4]/D").c_str());
   tree->Branch("StdHepPolz", StdHepPolz,
-    ("StdHepPolz["+NStdHepNPmaxstr+"][3]/F").c_str());
+    ("StdHepPolz["+NStdHepNPmaxstr+"][3]/D").c_str());
   tree->Branch("StdHepFd", StdHepFd,"StdHepFd[StdHepN]/I");
   tree->Branch("StdHepLd", StdHepLd,"StdHepLd[StdHepN]/I");
   tree->Branch("StdHepFm", StdHepFm,"StdHepFm[StdHepN]/I");
