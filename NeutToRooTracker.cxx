@@ -1,3 +1,7 @@
+#include <cstdlib>
+#include <cerrno>
+#include <climits>
+
 #include <sstream>
 #include <iostream>
 
@@ -15,6 +19,49 @@ inline long MakeNuclearPDG(int Z, int A){
   // 100%03d%03d0 % Z, A
   return 1000000000L + Z*10000L + A*10L;
 }
+
+enum STR2INT_ERROR { STRINT_SUCCESS,
+                     STRINT_OVERFLOW,
+                     STRINT_UNDERFLOW,
+                     STRINT_INCONVERTIBLE };
+
+///Converts a string to a long, checking for errors.
+///See STR2INT_ERROR for error codes.
+STR2INT_ERROR str2int (long &i, char const *s, int base=10) {
+  char *end;
+  long  l;
+  errno;
+  l = strtol(s, &end, base);
+  if ((errno == ERANGE && l == LONG_MAX) || l > LONG_MAX) {
+      return STRINT_OVERFLOW;
+  }
+  if ((errno == ERANGE && l == LONG_MIN) || l < LONG_MIN) {
+      return STRINT_UNDERFLOW;
+  }
+  if (*s == '\0' || *end != '\0') {
+      return STRINT_INCONVERTIBLE;
+  }
+  i = l;
+  return STRINT_SUCCESS;
+}
+
+///Converts a string to a int, checking for errors.
+///See STR2INT_ERROR for error codes.
+STR2INT_ERROR str2int (int &i, char const *s, int base=10) {
+  long holder;
+  STR2INT_ERROR retC = str2int(holder,s,base);
+  if(retC != STRINT_SUCCESS){
+    return retC;
+  }
+  if(holder > INT_MAX) {
+    return STRINT_OVERFLOW;
+  } else if (holder < INT_MIN){
+    return STRINT_UNDERFLOW;
+  }
+  i = holder;
+  return retC;
+}
+
 
 std::ostream& operator<<(std::ostream& o, const TLorentzVector& tlv){
   return o << "[" << tlv.X() << ", " << tlv.Y() << ", " << tlv.Z() << ", "
@@ -57,6 +104,11 @@ int NeutToRooTracker(const char* InputFileDescriptor){
 
   long NEntries = NeutTree->GetEntries();
 
+  if(!NEntries){
+    std::cout << "Failed to find any entries (" << NEntries
+      << ")." << std::endl;
+    return 4;
+  }
   std::cout << "Reading " << nFiles << " input files with "
     << NEntries << " entries." << std::endl;
 
@@ -66,7 +118,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
   if(!outFile->IsOpen()){
     std::cerr << "[ERROR]: Couldn't open output file: " << outfname
     << std::endl;
-    return 4;
+    return 8;
   } else {
     std::cout << "Created output file: " << outFile->GetName() << std::endl;
   }
@@ -81,7 +133,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
 
   for(long entryNum = 0; entryNum < NEntries; ++entryNum){
 
-    if( entryNum && (!(entryNum%5000)) ){
+    if( entryNum && (!(entryNum%10000)) ){
       std::cout << "Read " << entryNum << " entries." << std::endl;
     }
 
@@ -106,8 +158,6 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     outRooTracker->NEcrsz = vector->Crsz;
     outRooTracker->NEcrsphi = vector->Crsphi;
 
-
-
     (void)outRooTracker->EvtVtx[0];
     (void)outRooTracker->EvtVtx[0];
     (void)outRooTracker->EvtVtx[0];
@@ -115,95 +165,86 @@ int NeutToRooTracker(const char* InputFileDescriptor){
 
     //**************************************************
     //StdHepN Particles
-    //Work out how many good particles there are
-    int NGoodStatus = 0;
-    for(int partNum = 0; partNum < vector->Npart(); ++partNum){
-      const NeutPart& part = (*vector->PartInfo(partNum));
-      if( !partNum ||
-            (part.fIsAlive &&
-              ( (part.fStatus == -1)|| // Initial State
-                (part.fStatus == 0) || // Final State (Trackable)
-                (part.fStatus == 2)    // Escape from detector (Trackable)
-              )
-            ) ){
-        NGoodStatus++;
-      }
-    }
 
     if(verbosity > 1){
       std::cout << "Vector #:" << entryNum << std::endl;
-      std::cout << "\tEvtCode: " << outRooTracker->EvtCode << std::endl;
+      std::cout << "\tEvtCode: " << (*outRooTracker->EvtCode) << std::endl;
       std::cout << "\tEvtXSec: " << outRooTracker->EvtXSec << std::endl;
       std::cout << "\tNEcrsx: " << outRooTracker->NEcrsx << std::endl;
       std::cout << "\tNEcrsy: " << outRooTracker->NEcrsy << std::endl;
       std::cout << "\tNEcrsz: " << outRooTracker->NEcrsz << std::endl;
       std::cout << "\tNEcrsphi: " << outRooTracker->NEcrsphi << std::endl;
-      std::cout << "\tNOutgoing Particles: " << (NGoodStatus-1) << std::endl;
+      std::cout << "\tNOutgoing Particles: " << vector->Npart() << std::endl;
       std::cout << std::endl;
     }
 
     //Fill the particle info
-    outRooTracker->StdHepN = NGoodStatus+1;
+    outRooTracker->StdHepN = vector->Npart();
 
-    // As in TNeutOutput, to emulate neutgeom
-    // StdHepX[1] is the target
-    outRooTracker->StdHepPdg[1] =
-      MakeNuclearPDG(vector->TargetZ, vector->TargetA);
-    outRooTracker->StdHepP4[1][kNStdHepIdxE] = vector->TargetA;
-
-    int storageNum = 0;
     for(int partNum = 0; partNum < vector->Npart(); ++partNum){
       const NeutPart& part = (*vector->PartInfo(partNum));
 
-      if(partNum == 1){ //Skip the target descriptor that we have already
+      if(partNum == 1){
+        // As in TNeutOutput, to emulate neutgeom
+        // StdHepX[1] is the target
+        outRooTracker->StdHepPdg[1] =
+          MakeNuclearPDG(vector->TargetZ, vector->TargetA);
+        outRooTracker->StdHepP4[1][kNStdHepIdxE] = vector->TargetA;
         if(verbosity > 1){
           std::cout << "TARGET"
             << "\n\tA: " << vector->TargetA
             << "\n\tZ: " << vector->TargetZ
-            << "\n\tPDG: " << outRooTracker->StdHepPdg[storageNum]
-            << "\n\tStatus: " << outRooTracker->StdHepStatus[storageNum]
-            << "\n\tHEPP4: " << SayArray(outRooTracker->StdHepP4[storageNum])
+            << "\n\tPDG: " << outRooTracker->StdHepPdg[partNum]
+            << "\n\tStatus: " << outRooTracker->StdHepStatus[partNum]
+            << "\n\tHEPP4: " << SayArray(outRooTracker->StdHepP4[partNum])
             << std::endl;
         }
-        storageNum++;   //already filled.
-        continue;
-      }
-      if( partNum && // Incoming neutrino should always be saved
-            (!part.fIsAlive ||
-              !((part.fStatus == -1)||
-               (part.fStatus == 0) ||
-               (part.fStatus == 2)
-              )
-            ) ){
         continue;
       }
 
-      outRooTracker->StdHepPdg[storageNum] = part.fPID;
-      outRooTracker->StdHepStatus[storageNum] = (part.fStatus+1)?1:0;
-      outRooTracker->StdHepP4[storageNum][kNStdHepIdxPx] = part.fP.X();
-      outRooTracker->StdHepP4[storageNum][kNStdHepIdxPy] = part.fP.Y();
-      outRooTracker->StdHepP4[storageNum][kNStdHepIdxPz] = part.fP.Z();
-      outRooTracker->StdHepP4[storageNum][kNStdHepIdxE] = part.fP.E();
+      outRooTracker->StdHepPdg[partNum] = part.fPID;
 
+      switch(part.fStatus){
+        case -1:{
+          outRooTracker->StdHepStatus[partNum] = 0;
+          break;
+        }
+        case 0:{
+          outRooTracker->StdHepStatus[partNum] = 1;
+          break;
+        }
+        case 2:{
+          outRooTracker->StdHepStatus[partNum] = 1;
+          break;
+        }
+        default:{
+          std::cout << "--Found other neutcode: " << part.fStatus << std::endl;
+          outRooTracker->StdHepStatus[partNum] = 2;
+        }
+      }
+
+      outRooTracker->StdHepP4[partNum][kNStdHepIdxPx] = part.fP.X();
+      outRooTracker->StdHepP4[partNum][kNStdHepIdxPy] = part.fP.Y();
+      outRooTracker->StdHepP4[partNum][kNStdHepIdxPz] = part.fP.Z();
+      outRooTracker->StdHepP4[partNum][kNStdHepIdxE] = part.fP.E();
 
       if(verbosity > 1){
-        std::cout << ((partNum)?"Outgoing Particle:":"Incoming Neutrino:")
-          << "\n\tStdHEPPDG: " << outRooTracker->StdHepPdg[storageNum]
-          << "\n\tStdHEPStatus: " << outRooTracker->StdHepStatus[storageNum]
-          << "\n\tStdHEPP4: " << SayArray(outRooTracker->StdHepP4[storageNum])
+        std::cout << ((partNum>1)?"Particle:":"Incoming Neutrino:")
+          << "\n\tStdHEPPDG: " << outRooTracker->StdHepPdg[partNum]
+          << "\n\tStdHEPStatus: " << outRooTracker->StdHepStatus[partNum]
+          << "\n\tStdHEPP4: " << SayArray(outRooTracker->StdHepP4[partNum])
           << std::endl;
       }
 
       //Not implemented in NEUT
-      (void)outRooTracker->StdHepX4[storageNum][kNStdHepIdxX];
-      (void)outRooTracker->StdHepX4[storageNum][kNStdHepIdxY];
-      (void)outRooTracker->StdHepX4[storageNum][kNStdHepIdxZ];
-      (void)outRooTracker->StdHepX4[storageNum][kNStdHepIdxT];
-      (void)outRooTracker->StdHepPolz[storageNum][kNStdHepIdxPx];
-      (void)outRooTracker->StdHepPolz[storageNum][kNStdHepIdxPy];
-      (void)outRooTracker->StdHepPolz[storageNum][kNStdHepIdxPz];
-      (void)outRooTracker->StdHepPolz[storageNum][kNStdHepIdxE];
-      storageNum++;
+      (void)outRooTracker->StdHepX4[partNum][kNStdHepIdxX];
+      (void)outRooTracker->StdHepX4[partNum][kNStdHepIdxY];
+      (void)outRooTracker->StdHepX4[partNum][kNStdHepIdxZ];
+      (void)outRooTracker->StdHepX4[partNum][kNStdHepIdxT];
+      (void)outRooTracker->StdHepPolz[partNum][kNStdHepIdxPx];
+      (void)outRooTracker->StdHepPolz[partNum][kNStdHepIdxPy];
+      (void)outRooTracker->StdHepPolz[partNum][kNStdHepIdxPz];
+      (void)outRooTracker->StdHepPolz[partNum][kNStdHepIdxE];
     }
 
     //**************************************************
@@ -268,7 +309,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
 
 void SayRunLike(const char* invoke_cmd){
   std::cout << "Run like:\n " << invoke_cmd << " <input_file_descriptor>"
-   << " [<output_file_name=vector.ntrac.root>] [--OutputObject]"
+   << " [<output_file_name=vector.ntrac.root>] [0-3{Verbosity}] [--OutputObject]"
    << "\n\t\"input_file_descriptor\" = any string that is a valid input"
    << "\n\t\tfor TChain::Add(const char*), e.g. myinputfiles_*.root"
    << "\n\tIf --OutputObject is specified the output tree will contain a single"
@@ -284,7 +325,7 @@ bool IsHelp(std::string helpcli){
 
 int main(int argc, char* argv[]){
   //Too many args spoil the broth
-  if((argc > 4) || (argc == 1)){ SayRunLike(argv[0]); return 1;}
+  if((argc > 6) || (argc == 1)){ SayRunLike(argv[0]); return 1;}
   //If the user is asking for help
   if(argc == 2 && IsHelp(argv[1])){ SayRunLike(argv[0]); return 0; }
 
@@ -301,10 +342,20 @@ int main(int argc, char* argv[]){
     std::cout << "Will write output in rootracker object format." << std::endl;
   }
 
-  if(argc == (3 + int(ObjectOutput))){
+  if(argc >= (3 + int(ObjectOutput))){
     outfname = argv[2];
   } else {
     outfname = "vector.ntrac.root";
+  }
+
+  if(argc >= (4 + int(ObjectOutput))){
+    if(str2int(verbosity,argv[3]) != STRINT_SUCCESS){
+      std::cout << "Failed to parse: " << argv[3]
+        << " as an integer verbosity level." << std::endl;
+      return 1;
+    }
+  } else {
+    verbosity = 0;
   }
 
   int rtncode = 0;
