@@ -1,7 +1,3 @@
-#include <cstdlib>
-#include <cerrno>
-#include <climits>
-
 #include <sstream>
 #include <iostream>
 
@@ -12,56 +8,12 @@
 #include "neutvect.h"
 #include "neutvtx.h"
 
+#include "CLITools.hxx"
+#include "PureGenUtils.hxx"
+
 #include "PureNeutRooTracker.hxx"
 
 namespace {
-inline long MakeNuclearPDG(int Z, int A){
-  // 100%03d%03d0 % Z, A
-  return 1000000000L + Z*10000L + A*10L;
-}
-
-enum STR2INT_ERROR { STRINT_SUCCESS,
-                     STRINT_OVERFLOW,
-                     STRINT_UNDERFLOW,
-                     STRINT_INCONVERTIBLE };
-
-///Converts a string to a long, checking for errors.
-///See STR2INT_ERROR for error codes.
-STR2INT_ERROR str2int (long &i, char const *s, int base=10) {
-  char *end;
-  long  l;
-  errno;
-  l = strtol(s, &end, base);
-  if ((errno == ERANGE && l == LONG_MAX) || l > LONG_MAX) {
-      return STRINT_OVERFLOW;
-  }
-  if ((errno == ERANGE && l == LONG_MIN) || l < LONG_MIN) {
-      return STRINT_UNDERFLOW;
-  }
-  if (*s == '\0' || *end != '\0') {
-      return STRINT_INCONVERTIBLE;
-  }
-  i = l;
-  return STRINT_SUCCESS;
-}
-
-///Converts a string to a int, checking for errors.
-///See STR2INT_ERROR for error codes.
-STR2INT_ERROR str2int (int &i, char const *s, int base=10) {
-  long holder;
-  STR2INT_ERROR retC = str2int(holder,s,base);
-  if(retC != STRINT_SUCCESS){
-    return retC;
-  }
-  if(holder > INT_MAX) {
-    return STRINT_OVERFLOW;
-  } else if (holder < INT_MIN){
-    return STRINT_UNDERFLOW;
-  }
-  i = holder;
-  return retC;
-}
-
 
 std::ostream& operator<<(std::ostream& o, const TLorentzVector& tlv){
   return o << "[" << tlv.X() << ", " << tlv.Y() << ", " << tlv.Z() << ", "
@@ -69,19 +21,11 @@ std::ostream& operator<<(std::ostream& o, const TLorentzVector& tlv){
 }
 
 std::string outfname;
+std::string inpfdescript;
 bool ObjectOutput = false;
+bool useSimpleTree = false;
+bool OutputInGev = false;
 int verbosity = 0;
-
-template<typename T, size_t N>
-std::string SayArray(const T (&arr)[N]){
-  std::stringstream ss("");
-  ss << "[";
-  for(size_t i = 0; i < N; ++i){
-    ss << arr[i] << ((i==N-1)?"":", ");
-  }
-  ss << "]";
-  return ss.str();
-}
 }
 
 int NeutToRooTracker(const char* InputFileDescriptor){
@@ -128,7 +72,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
   if(ObjectOutput){
     rooTrackerTree->Branch("nRooTracker", &outRooTracker);
   } else {
-    outRooTracker->AddBranches(rooTrackerTree);
+    outRooTracker->AddBranches(rooTrackerTree, useSimpleTree);
   }
 
   for(long entryNum = 0; entryNum < NEntries; ++entryNum){
@@ -188,7 +132,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
         // As in TNeutOutput, to emulate neutgeom
         // StdHepX[1] is the target
         outRooTracker->StdHepPdg[1] =
-          MakeNuclearPDG(vector->TargetZ, vector->TargetA);
+          PGUtils::MakeNuclearPDG(vector->TargetZ, vector->TargetA);
         outRooTracker->StdHepP4[1][kNStdHepIdxE] = vector->TargetA;
         if(verbosity > 1){
           std::cout << "TARGET"
@@ -196,7 +140,8 @@ int NeutToRooTracker(const char* InputFileDescriptor){
             << "\n\tZ: " << vector->TargetZ
             << "\n\tPDG: " << outRooTracker->StdHepPdg[partNum]
             << "\n\tStatus: " << outRooTracker->StdHepStatus[partNum]
-            << "\n\tHEPP4: " << SayArray(outRooTracker->StdHepP4[partNum])
+            << "\n\tHEPP4: " << PGUtils::PrintArray(
+              outRooTracker->StdHepP4[partNum])
             << std::endl;
         }
         continue;
@@ -223,16 +168,25 @@ int NeutToRooTracker(const char* InputFileDescriptor){
         }
       }
 
-      outRooTracker->StdHepP4[partNum][kNStdHepIdxPx] = part.fP.X();
-      outRooTracker->StdHepP4[partNum][kNStdHepIdxPy] = part.fP.Y();
-      outRooTracker->StdHepP4[partNum][kNStdHepIdxPz] = part.fP.Z();
-      outRooTracker->StdHepP4[partNum][kNStdHepIdxE] = part.fP.E();
+      if(OutputInGev){
+        static constexpr float MeVToGeV = 1.0/1000;
+        outRooTracker->StdHepP4[partNum][kNStdHepIdxPx] = part.fP.X()*MeVToGeV;
+        outRooTracker->StdHepP4[partNum][kNStdHepIdxPy] = part.fP.Y()*MeVToGeV;
+        outRooTracker->StdHepP4[partNum][kNStdHepIdxPz] = part.fP.Z()*MeVToGeV;
+        outRooTracker->StdHepP4[partNum][kNStdHepIdxE] = part.fP.E()*MeVToGeV;
+      } else {
+        outRooTracker->StdHepP4[partNum][kNStdHepIdxPx] = part.fP.X();
+        outRooTracker->StdHepP4[partNum][kNStdHepIdxPy] = part.fP.Y();
+        outRooTracker->StdHepP4[partNum][kNStdHepIdxPz] = part.fP.Z();
+        outRooTracker->StdHepP4[partNum][kNStdHepIdxE] = part.fP.E();
+      }
 
       if(verbosity > 1){
         std::cout << ((partNum>1)?"Particle:":"Incoming Neutrino:")
           << "\n\tStdHEPPDG: " << outRooTracker->StdHepPdg[partNum]
           << "\n\tStdHEPStatus: " << outRooTracker->StdHepStatus[partNum]
-          << "\n\tStdHEPP4: " << SayArray(outRooTracker->StdHepP4[partNum])
+          << "\n\tStdHEPP4: " << PGUtils::PrintArray(
+            outRooTracker->StdHepP4[partNum])
           << std::endl;
       }
 
@@ -257,7 +211,6 @@ int NeutToRooTracker(const char* InputFileDescriptor){
       (void)outRooTracker->NEiflgvc[i];
       (void)outRooTracker->NEicrnvc[i];
     }
-
 
     //**************************************************
     //NEUT Pion FSI interaction history
@@ -307,60 +260,81 @@ int NeutToRooTracker(const char* InputFileDescriptor){
   return 0;
 }
 
-void SayRunLike(const char* invoke_cmd){
-  std::cout << "Run like:\n " << invoke_cmd << " <input_file_descriptor>"
-   << " [<output_file_name=vector.ntrac.root>] [0-3{Verbosity}] [--OutputObject]"
-   << "\n\t\"input_file_descriptor\" = any string that is a valid input"
-   << "\n\t\tfor TChain::Add(const char*), e.g. myinputfiles_*.root"
-   << "\n\tIf --OutputObject is specified the output tree will contain a single"
-   " branch of the type NRooTrackerVtx" << std::endl;
+namespace {
+
+void SetOpts(){
+  CLIArgs::OptSpec.emplace_back("-h","--help", false,
+    [&] (std::string const &opt) -> bool {
+      CLIArgs::SayRunLike();
+      exit(0);
+    });
+
+  CLIArgs::OptSpec.emplace_back("-i", "--input-file", true,
+    [&] (std::string const &opt) -> bool {
+      std::cout << "\tReading from file descriptor : " << opt << std::endl;
+      inpfdescript = opt;
+      return true;
+    }, true,[](){},"<TChain::Add descriptor>");
+
+  CLIArgs::OptSpec.emplace_back("-o", "--output-file", true,
+    [&] (std::string const &opt) -> bool {
+      std::cout << "\tWriting to File: " << opt << std::endl;
+      outfname = opt;
+      return true;
+    }, false,
+    [&](){outfname = "vector.ntrac.root";},
+    "<File Name>{default=vector.ntrac.root}");
+
+  CLIArgs::OptSpec.emplace_back("-v", "--verbosity", true,
+    [&] (std::string const &opt) -> bool {
+      int vbhold;
+      if(PGUtils::str2int(vbhold,opt.c_str()) == PGUtils::STRINT_SUCCESS){
+        std::cout << "Verbosity: " << vbhold << std::endl;
+        verbosity = vbhold;
+        return true;
+      }
+      return false;
+    }, false,
+    [&](){verbosity = 0;}, "<0-4>{default=0}");
+
+  CLIArgs::OptSpec.emplace_back("-s", "--simple-tree", false,
+    [&] (std::string const &opt) -> bool {
+      std::cout << "Using simple tree." << std::endl;
+      useSimpleTree = true;
+      return true;
+    }, false,
+    [&](){useSimpleTree = false;}, "Only output StdHep. [default=false]");
+
+  CLIArgs::OptSpec.emplace_back("-O", "--objectify-output", false,
+    [&] (std::string const &opt) -> bool {
+      std::cout << "Using simple tree." << std::endl;
+      ObjectOutput = true;
+      return true;
+    }, false,
+    [&](){ObjectOutput = false;}, "Output object tree.{default=false}");
+
+  CLIArgs::OptSpec.emplace_back("-G", "--GeV-mode", false,
+    [&] (std::string const &opt) -> bool {
+      std::cout << "Outputting in GeV." << std::endl;
+      OutputInGev = true;
+      return true;
+    }, false,
+    [&](){OutputInGev = false;}, "Use GeV rather than MeV.{default=false}");
+}
 }
 
-bool IsHelp(std::string helpcli){
-  if((helpcli == "--help") || (helpcli == "-h")  || (helpcli == "-?") ){
-    return true;
-  }
-  return false;
-}
+int main(int argc, char const * argv[]){
+  SetOpts();
 
-int main(int argc, char* argv[]){
-  //Too many args spoil the broth
-  if((argc > 6) || (argc == 1)){ SayRunLike(argv[0]); return 1;}
-  //If the user is asking for help
-  if(argc == 2 && IsHelp(argv[1])){ SayRunLike(argv[0]); return 0; }
-
-
-  if((std::string(argv[argc-1]) == "--OutputObject")){
-    if(argc==2){
-      std::cerr << "[ERROR]: You only specified a single argument and it was:\""
-      << argv[argc-1] << "\". You must at least include an input file descripto"
-      "r." << std::endl;
-      SayRunLike(argv[0]);
-      return 1;
-    }
-    ObjectOutput = true;
-    std::cout << "Will write output in rootracker object format." << std::endl;
-  }
-
-  if(argc >= (3 + int(ObjectOutput))){
-    outfname = argv[2];
-  } else {
-    outfname = "vector.ntrac.root";
-  }
-
-  if(argc >= (4 + int(ObjectOutput))){
-    if(str2int(verbosity,argv[3]) != STRINT_SUCCESS){
-      std::cout << "Failed to parse: " << argv[3]
-        << " as an integer verbosity level." << std::endl;
-      return 1;
-    }
-  } else {
-    verbosity = 0;
+  CLIArgs::AddArguments(argc,argv);
+  if(!CLIArgs::GetOpts()){
+    CLIArgs::SayRunLike();
+    return 1;
   }
 
   int rtncode = 0;
-  if((rtncode = NeutToRooTracker(argv[1]))){
-    SayRunLike(argv[0]);
+  if((rtncode = NeutToRooTracker(inpfdescript.c_str()))){
+    CLIArgs::SayRunLike();
   }
   return rtncode;
 }

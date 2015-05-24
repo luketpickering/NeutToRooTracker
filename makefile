@@ -2,10 +2,13 @@ CXX := g++
 RCINT := rootcint
 RC := root-config
 
+BDIR :=bin
+LDIR :=lib
+
 TOBJS := PureNeutRooTracker.cxx
 TOBJH := $(TOBJS:.cxx=.hxx)
 TOBJDICTS := $(TOBJS:.cxx=_dict.cxx)
-TDICTHEADERSS := $(TOBJS:.cxx=_dict.h)
+TDICTHEADERS := $(TOBJS:.cxx=_dict.h)
 TOBJLINKDEFS := $(TOBJS:.cxx=_linkdef.h)
 TOBJSO := $(TOBJS:.cxx=.so)
 
@@ -15,10 +18,13 @@ TARGETSRC := $(TARGET:.exe=.cxx)
 NEUTCLASSDIR := $(NEUTCLASSLOC)
 NEUTDEPSO := neutvect.so neutpart.so neutfsipart.so neutfsivert.so neutvtx.so
 
+UTILSLOC=../../../utils
+UTILSDEPSO=libPureGenUtils.so
+
 ROOTCFLAGS := `$(RC) --cflags`
 ROOTLDFLAGS := `$(RC) --libs --glibs`
 
-CXXFLAGS := -fPIC $(ROOTCFLAGS) -g
+CXXFLAGS := -fPIC $(ROOTCFLAGS) -g -std=c++11
 LDFLAGS := $(ROOTLDFLAGS) -Wl,-rpath=.
 
 .PHONY: all clean
@@ -26,26 +32,33 @@ LDFLAGS := $(ROOTLDFLAGS) -Wl,-rpath=.
 all: $(TARGET)
 	@echo ""
 	@echo "*********************************************************************"
-	@echo "Success. Note you will need to run me from here or add this directory"
-	@echo "to your LD_LIBRARY_PATH."
+	@echo "Success. Built NeutToRooTracker."
 	@echo "*********************************************************************"
+	mkdir -p $(BDIR) $(LDIR)
+	mv $(TARGET) $(BDIR)/
+	mv $(UTILSDEPSO) $(NEUTDEPSO) $(TOBJSO) $(LDIR)/
 
-
+$(UTILSDEPSO):
+	ln -s $(UTILSLOC)/lib/$@ $@
 $(NEUTDEPSO):
 	ln -s $(NEUTCLASSDIR)/$@ $@
 
-$(TARGET): $(TARGETSRC) $(TOBJSO) $(NEUTDEPSO)
-	$(CXX) -o $@ -I$(NEUTCLASSDIR) $(CXXFLAGS) $(LDFLAGS) $^
+$(TARGET): $(TARGETSRC) $(TOBJSO) $(NEUTDEPSO) $(UTILSDEPSO)
+	$(CXX) -o $@ -I$(NEUTCLASSDIR) $(CXXFLAGS) $(LDFLAGS) -I$(UTILSLOC) $^
 
 PureNeutRooTracker_dict.cxx: PureNeutRooTracker.hxx
 
 PureNeutRooTracker.so: PureNeutRooTracker.cxx PureNeutRooTracker.hxx PureNeutRooTracker_linkdef.h
 	$(RCINT) -f PureNeutRooTracker_dict.cxx -c -p PureNeutRooTracker.hxx PureNeutRooTracker_linkdef.h
-	$(CXX) $(CXXFLAGS) -shared -I$(NEUTCLASSDIR) PureNeutRooTracker.cxx PureNeutRooTracker_dict.cxx -o $@
+	$(CXX) $(CXXFLAGS) -shared -I$(UTILSLOC) -I$(NEUTCLASSDIR) PureNeutRooTracker.cxx PureNeutRooTracker_dict.cxx -o $@
 
 clean:
-	rm -f $(TOBJDICTS)\
-              $(TDICTHEADERS)\
-              $(TOBJSO)\
+	rm -rf $(TOBJDICTS)\
+        $(TDICTHEADERS)\
+        $(UTILSDEPSO)\
+        $(TOBJSO)\
 	      $(TARGET)\
-	      $(NEUTDEPSO)
+	      $(NEUTDEPSO)\
+        $(BDIR) \
+        $(LDIR)
+

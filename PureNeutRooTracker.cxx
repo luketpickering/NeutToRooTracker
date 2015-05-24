@@ -1,14 +1,8 @@
 #include <sstream>
 
-#include "PureNeutRooTracker.hxx"
+#include "PureGenUtils.hxx"
 
-namespace {
-std::string Int2Str(Int_t i){
-  std::stringstream ss("");
-  ss << i;
-  return ss.str();
-}
-}
+#include "PureNeutRooTracker.hxx"
 
 NRooTrackerVtx::NRooTrackerVtx(){
   EvtCode = new TString("");
@@ -85,27 +79,27 @@ void NRooTrackerVtx::Reset(){
   EvtDXSec = 0;
   EvtWght = 0;
   EvtProb = 0;
-  ClearArray(EvtVtx);
+  PGUtils::ClearArray(EvtVtx);
 
   StdHepN = 0;
 
-  ClearPointer(StdHepPdg,kNStdHepNPmax);
-  ClearPointer(StdHepStatus,kNStdHepNPmax);
-  ClearArray2D(StdHepX4);
-  ClearArray2D(StdHepP4);
-  ClearArray2D(StdHepPolz);
-  ClearPointer(StdHepFd,kNStdHepNPmax);
-  ClearPointer(StdHepLd,kNStdHepNPmax);
-  ClearPointer(StdHepFm,kNStdHepNPmax);
-  ClearPointer(StdHepLm,kNStdHepNPmax);
+  PGUtils::ClearPointer(StdHepPdg,kNStdHepNPmax);
+  PGUtils::ClearPointer(StdHepStatus,kNStdHepNPmax);
+  PGUtils::ClearArray2D(StdHepX4);
+  PGUtils::ClearArray2D(StdHepP4);
+  PGUtils::ClearArray2D(StdHepPolz);
+  PGUtils::ClearPointer(StdHepFd,kNStdHepNPmax);
+  PGUtils::ClearPointer(StdHepLd,kNStdHepNPmax);
+  PGUtils::ClearPointer(StdHepFm,kNStdHepNPmax);
+  PGUtils::ClearPointer(StdHepLm,kNStdHepNPmax);
 
   NEnvc = 0;
 
-  ClearPointer(NEipvc,kNEmaxvc);
-  ClearArray2D(NEpvc);
-  ClearPointer(NEiorgvc,kNEmaxvc);
-  ClearPointer(NEiflgvc,kNEmaxvc);
-  ClearPointer(NEicrnvc,kNEmaxvc);
+  PGUtils::ClearPointer(NEipvc,kNEmaxvc);
+  PGUtils::ClearArray2D(NEpvc);
+  PGUtils::ClearPointer(NEiorgvc,kNEmaxvc);
+  PGUtils::ClearPointer(NEiflgvc,kNEmaxvc);
+  PGUtils::ClearPointer(NEicrnvc,kNEmaxvc);
 
   NEcrsx = 0;
   NEcrsy = 0;
@@ -114,42 +108,42 @@ void NRooTrackerVtx::Reset(){
 
   NEnvert = 0;
 
-  ClearArray2D(NEposvert);
-  ClearPointer(NEiflgvert,kNEmaxvert);
+  PGUtils::ClearArray2D(NEposvert);
+  PGUtils::ClearPointer(NEiflgvert,kNEmaxvert);
 
   NEnvcvert = 0;
-  ClearArray2D(NEdirvert);
-  ClearPointer(NEabspvert,kNEmaxvertp);
-  ClearPointer(NEabstpvert,kNEmaxvertp);
-  ClearPointer(NEipvert,kNEmaxvertp);
-  ClearPointer(NEiverti,kNEmaxvertp);
-  ClearPointer(NEivertf,kNEmaxvertp);
+  PGUtils::ClearArray2D(NEdirvert);
+  PGUtils::ClearPointer(NEabspvert,kNEmaxvertp);
+  PGUtils::ClearPointer(NEabstpvert,kNEmaxvertp);
+  PGUtils::ClearPointer(NEipvert,kNEmaxvertp);
+  PGUtils::ClearPointer(NEiverti,kNEmaxvertp);
+  PGUtils::ClearPointer(NEivertf,kNEmaxvertp);
 
   NFnvert = 0;
-  ClearPointer(NFiflag,kNFMaxNucleonVert);
-  ClearPointer(NFx,kNFMaxNucleonVert);
-  ClearPointer(NFy,kNFMaxNucleonVert);
-  ClearPointer(NFz,kNFMaxNucleonVert);
-  ClearPointer(NFpx,kNFMaxNucleonVert);
-  ClearPointer(NFpy,kNFMaxNucleonVert);
-  ClearPointer(NFpz,kNFMaxNucleonVert);
-  ClearPointer(NFe,kNFMaxNucleonVert);
-  ClearPointer(NFfirststep,kNFMaxNucleonVert);
+  PGUtils::ClearPointer(NFiflag,kNFMaxNucleonVert);
+  PGUtils::ClearPointer(NFx,kNFMaxNucleonVert);
+  PGUtils::ClearPointer(NFy,kNFMaxNucleonVert);
+  PGUtils::ClearPointer(NFz,kNFMaxNucleonVert);
+  PGUtils::ClearPointer(NFpx,kNFMaxNucleonVert);
+  PGUtils::ClearPointer(NFpy,kNFMaxNucleonVert);
+  PGUtils::ClearPointer(NFpz,kNFMaxNucleonVert);
+  PGUtils::ClearPointer(NFe,kNFMaxNucleonVert);
+  PGUtils::ClearPointer(NFfirststep,kNFMaxNucleonVert);
 
   NFnstep = 0;
 
-  ClearPointer(NFecms2,kNFMaxNucleonSteps);
+  PGUtils::ClearPointer(NFecms2,kNFMaxNucleonSteps);
 
   (*GeneratorName) = "NEUT";
 }
 
-void NRooTrackerVtx::AddBranches(TTree* &tree){
-  std::string NStdHepNPmaxstr = Int2Str(kNStdHepNPmax);
-  std::string NEmaxvcstr = Int2Str(kNEmaxvc);
-  std::string NEmaxvertstr = Int2Str(kNEmaxvert);
-  std::string NEmaxvertpstr = Int2Str(kNEmaxvertp);
-  std::string NFMaxNucleonVert = Int2Str(kNFMaxNucleonVert);
-  std::string NFMaxNucleonSteps = Int2Str(kNFMaxNucleonSteps);
+void NRooTrackerVtx::AddBranches(TTree* &tree, bool SimpleTree){
+  std::string NStdHepNPmaxstr = PGUtils::int2str(kNStdHepNPmax);
+  std::string NEmaxvcstr = PGUtils::int2str(kNEmaxvc);
+  std::string NEmaxvertstr = PGUtils::int2str(kNEmaxvert);
+  std::string NEmaxvertpstr = PGUtils::int2str(kNEmaxvertp);
+  std::string NFMaxNucleonVert = PGUtils::int2str(kNFMaxNucleonVert);
+  std::string NFMaxNucleonSteps = PGUtils::int2str(kNFMaxNucleonSteps);
 
   tree->Branch("EvtCode", &EvtCode);
   tree->Branch("EvtNum", &EvtNum,"EvtNum/I");
@@ -171,6 +165,9 @@ void NRooTrackerVtx::AddBranches(TTree* &tree){
   tree->Branch("StdHepLd", StdHepLd,"StdHepLd[StdHepN]/I");
   tree->Branch("StdHepFm", StdHepFm,"StdHepFm[StdHepN]/I");
   tree->Branch("StdHepLm", StdHepLm,"StdHepLm[StdHepN]/I");
+
+  if(SimpleTree){ return; }
+
   tree->Branch("NEnvc", &NEnvc,"NEnvc/I");
   tree->Branch("NEipvc", NEipvc,"NEipvc[NEnvc]/I");
   tree->Branch("NEpvc", NEpvc,("NEpvc["+NEmaxvcstr+"][3]/F").c_str());

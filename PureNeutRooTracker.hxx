@@ -16,31 +16,6 @@ const int kNEmaxvc = 100;
 const int kNEmaxvert = 100;
 const int kNEmaxvertp = 300;
 
-template<typename T, size_t N>
-void ClearArray(T (&arr)[N]){
-  for(size_t i = 0; i < N; ++i){
-    arr[i] = 0;
-  }
-}
-
-template<typename T>
-void ClearPointer(T * &arr, size_t N){
-  for(size_t i = 0; i < N; ++i){
-    arr[i] = 0;
-  }
-}
-
-template<typename T, size_t N, size_t M>
-void ClearArray2D(T (&arr)[N][M]){
-  for(size_t i = 0; i < N; ++i){
-    for(size_t j = 0; j < M; ++j){
-      arr[i][j] = 0;
-    }
-  }
-}
-
-
-
 class NRooTrackerVtx : public TObject {
 
 ///\brief Maximum possible number of saved NFNucleonVertices
@@ -56,7 +31,7 @@ public:
   NRooTrackerVtx();
   void Reset();
   ~NRooTrackerVtx();
-  void AddBranches(TTree* &tree);
+  void AddBranches(TTree* &tree, bool SimpleTree=false);
 
   //****************** Define the output rootracker tree branches
 
