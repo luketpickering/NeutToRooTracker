@@ -39,7 +39,7 @@ all: $(TARGET)
 	mv $(UTILSDEPSO) $(NEUTDEPSO) $(TOBJSO) $(LDIR)/
 
 $(UTILSDEPSO):
-	ln -s $(UTILSLOC)/lib/$@ $@
+	ln -s `readlink -f $(UTILSLOC)/lib/$@` $@
 $(NEUTDEPSO):
 	ln -s $(NEUTCLASSDIR)/$@ $@
 
