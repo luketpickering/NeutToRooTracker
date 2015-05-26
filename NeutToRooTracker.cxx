@@ -47,6 +47,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
   NeutTree->SetBranchAddress("vertexbranch",&vertex);
 
   long NEntries = NeutTree->GetEntries();
+  long FilledEntries = 0;
 
   if(!NEntries){
     std::cout << "Failed to find any entries (" << NEntries
@@ -163,8 +164,11 @@ int NeutToRooTracker(const char* InputFileDescriptor){
           break;
         }
         default:{
-          std::cout << "--Found other neutcode: " << part.fStatus << std::endl;
-          outRooTracker->StdHepStatus[partNum] = 2;
+          if(verbosity > 1){
+            std::cout << "--Found other neutcode: " << part.fStatus << std::endl;
+            outRooTracker->StdHepStatus[partNum] =
+              (part.fStatus==1)?-1:part.fStatus;
+          }
         }
       }
 
@@ -250,11 +254,13 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     (void)outRooTracker->NFecms2[0];
 
     rooTrackerTree->Fill();
+    FilledEntries++;
     if(verbosity > 1){
       std::cout << "*****************Filled*****************\n" << std::endl;
     }
     outRooTracker->Reset();
   }
+  std::cout << "Wrote " << FilledEntries << "events to disk." << std::endl;
   rooTrackerTree->Write();
   outFile->Close();
   return 0;
@@ -303,7 +309,7 @@ void SetOpts(){
       useSimpleTree = true;
       return true;
     }, false,
-    [&](){useSimpleTree = false;}, "Only output StdHep. [default=false]");
+    [&](){useSimpleTree = false;}, "Only output StdHep.{default=false}");
 
   CLIArgs::OptSpec.emplace_back("-O", "--objectify-output", false,
     [&] (std::string const &opt) -> bool {
