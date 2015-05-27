@@ -30,13 +30,13 @@ LDFLAGS := $(ROOTLDFLAGS) -Wl,-rpath=.
 .PHONY: all clean
 
 all: $(TARGET)
+	mkdir -p $(BDIR) $(LDIR)
+	mv $(TARGET) $(BDIR)/
+	mv $(UTILSDEPSO) $(NEUTDEPSO) $(TOBJSO) $(LDIR)/
 	@echo ""
 	@echo "*********************************************************************"
 	@echo "Success. Built NeutToRooTracker."
 	@echo "*********************************************************************"
-	mkdir -p $(BDIR) $(LDIR)
-	mv $(TARGET) $(BDIR)/
-	mv $(UTILSDEPSO) $(NEUTDEPSO) $(TOBJSO) $(LDIR)/
 
 $(UTILSDEPSO):
 	ln -s `readlink -f $(UTILSLOC)/lib/$@` $@
