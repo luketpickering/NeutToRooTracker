@@ -93,6 +93,8 @@ void NRooTrackerVtx::Reset(){
   PGUtils::ClearPointer(StdHepFm,kNStdHepNPmax);
   PGUtils::ClearPointer(StdHepLm,kNStdHepNPmax);
 
+  IsBound = 0;
+
   NEnvc = 0;
 
   PGUtils::ClearPointer(NEipvc,kNEmaxvc);
@@ -137,7 +139,10 @@ void NRooTrackerVtx::Reset(){
   (*GeneratorName) = "NEUT";
 }
 
-void NRooTrackerVtx::AddBranches(TTree* &tree, bool SimpleTree){
+void NRooTrackerVtx::AddBranches(TTree* &tree,
+  bool SimpleTree,
+  bool SaveIsBound){
+
   std::string NStdHepNPmaxstr = PGUtils::int2str(kNStdHepNPmax);
   std::string NEmaxvcstr = PGUtils::int2str(kNEmaxvc);
   std::string NEmaxvertstr = PGUtils::int2str(kNEmaxvert);
@@ -165,6 +170,8 @@ void NRooTrackerVtx::AddBranches(TTree* &tree, bool SimpleTree){
   tree->Branch("StdHepLd", StdHepLd,"StdHepLd[StdHepN]/I");
   tree->Branch("StdHepFm", StdHepFm,"StdHepFm[StdHepN]/I");
   tree->Branch("StdHepLm", StdHepLm,"StdHepLm[StdHepN]/I");
+
+  if(SaveIsBound){ tree->Branch("IsBound", &IsBound, "IsBound/I"); }
 
   if(SimpleTree){ return; }
 

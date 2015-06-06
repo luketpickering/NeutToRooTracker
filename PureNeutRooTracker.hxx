@@ -31,7 +31,7 @@ public:
   NRooTrackerVtx();
   void Reset();
   ~NRooTrackerVtx();
-  void AddBranches(TTree* &tree, bool SimpleTree=false);
+  void AddBranches(TTree* &tree, bool SimpleTree=false, bool SaveIsBound=false);
 
   //****************** Define the output rootracker tree branches
 
@@ -64,6 +64,9 @@ public:
   Double_t StdHepP4 [kNStdHepNPmax][4];
   /// polarization vector CORRECT
   Double_t StdHepPolz [kNStdHepNPmax][3];
+
+  ///IBound
+  Int_t IsBound;
 
   /// first daughter
   Int_t* StdHepFd; //[StdHepN]

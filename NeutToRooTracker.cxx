@@ -25,6 +25,7 @@ std::string inpfdescript;
 bool ObjectOutput = false;
 bool useSimpleTree = false;
 bool OutputInGev = false;
+bool SaveIsBound = false;
 int verbosity = 0;
 }
 
@@ -73,7 +74,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
   if(ObjectOutput){
     rooTrackerTree->Branch("nRooTracker", &outRooTracker);
   } else {
-    outRooTracker->AddBranches(rooTrackerTree, useSimpleTree);
+    outRooTracker->AddBranches(rooTrackerTree, useSimpleTree, SaveIsBound);
   }
 
   for(long entryNum = 0; entryNum < NEntries; ++entryNum){
@@ -113,6 +114,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
 
     if(verbosity > 1){
       std::cout << "Vector #:" << entryNum << std::endl;
+      std::cout << "\tNPrimary: " << vector->Nprimary() << std::endl;
       std::cout << "\tEvtCode: " << (*outRooTracker->EvtCode) << std::endl;
       std::cout << "\tEvtXSec: " << outRooTracker->EvtXSec << std::endl;
       std::cout << "\tNEcrsx: " << outRooTracker->NEcrsx << std::endl;
@@ -125,6 +127,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
 
     //Fill the particle info
     outRooTracker->StdHepN = vector->Npart();
+    outRooTracker->IsBound = vector->Ibound;
 
     for(int partNum = 0; partNum < vector->Npart(); ++partNum){
       const NeutPart& part = (*vector->PartInfo(partNum));
@@ -143,6 +146,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
             << "\n\tStatus: " << outRooTracker->StdHepStatus[partNum]
             << "\n\tHEPP4: " << PGUtils::PrintArray(
               outRooTracker->StdHepP4[partNum])
+            << "\n\tIsBoundTarget: " << outRooTracker->IsBound
             << std::endl;
         }
         continue;
@@ -309,15 +313,7 @@ void SetOpts(){
       useSimpleTree = true;
       return true;
     }, false,
-    [&](){useSimpleTree = false;}, "Only output StdHep.{default=false}");
-
-  CLIArgs::OptSpec.emplace_back("-O", "--objectify-output", false,
-    [&] (std::string const &opt) -> bool {
-      std::cout << "Using simple tree." << std::endl;
-      ObjectOutput = true;
-      return true;
-    }, false,
-    [&](){ObjectOutput = false;}, "Output object tree.{default=false}");
+    [&](){useSimpleTree = false;}, "Only output StdHep.");
 
   CLIArgs::OptSpec.emplace_back("-G", "--GeV-mode", false,
     [&] (std::string const &opt) -> bool {
@@ -325,7 +321,23 @@ void SetOpts(){
       OutputInGev = true;
       return true;
     }, false,
-    [&](){OutputInGev = false;}, "Use GeV rather than MeV.{default=false}");
+    [&](){OutputInGev = false;}, "Use GeV rather than MeV.");
+
+  CLIArgs::OptSpec.emplace_back("-O", "--objectify-output", false,
+    [&] (std::string const &opt) -> bool {
+      std::cout << "Using simple tree." << std::endl;
+      ObjectOutput = true;
+      return true;
+    }, false,
+    [&](){ObjectOutput = false;}, "Output object tree.");
+
+  CLIArgs::OptSpec.emplace_back("-b", "--save-isbound", false,
+    [&] (std::string const &opt) -> bool {
+      std::cout << "Adding IsBound branch to output tree." << std::endl;
+      SaveIsBound = true;
+      return true;
+    }, false,
+    [&](){SaveIsBound = false;}, "Output IsBound Branch");
 }
 }
 
