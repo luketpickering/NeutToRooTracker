@@ -27,6 +27,7 @@ bool useSimpleTree = false;
 bool OutputInGev = false;
 bool SaveIsBound = false;
 int verbosity = 0;
+long MaxEntries = 0;
 }
 
 int NeutToRooTracker(const char* InputFileDescriptor){
@@ -77,7 +78,10 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     outRooTracker->AddBranches(rooTrackerTree, useSimpleTree, SaveIsBound);
   }
 
-  for(long entryNum = 0; entryNum < NEntries; ++entryNum){
+  long long doEntries = (MaxEntries==-1) ?
+    NEntries : (std::min(MaxEntries, NEntries));
+
+  for(long entryNum = 0; entryNum < doEntries; ++entryNum){
 
     if( entryNum && (!(entryNum%10000)) ){
       std::cout << "Read " << entryNum << " entries." << std::endl;
@@ -112,8 +116,19 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     //**************************************************
     //StdHepN Particles
 
+    if(verbosity>3){
+      std::cout << "**"
+"******************************************************************************"
+    << std::endl;
+    vector->Dump();
+      std::cout << "**"
+"******************************************************************************"
+    << std::endl;
+    }
+
     if(verbosity > 1){
       std::cout << "Vector #:" << entryNum << std::endl;
+      std::cout << "\tNPrimary: " << vector->Npart() << std::endl;
       std::cout << "\tNPrimary: " << vector->Nprimary() << std::endl;
       std::cout << "\tEvtCode: " << (*outRooTracker->EvtCode) << std::endl;
       std::cout << "\tEvtXSec: " << outRooTracker->EvtXSec << std::endl;
@@ -126,87 +141,94 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     }
 
     //Fill the particle info
-    outRooTracker->StdHepN = vector->Npart();
+    outRooTracker->StdHepN = vector->Npart()+1;//Need to include nuclear target.
     outRooTracker->IsBound = vector->Ibound;
 
-    for(int partNum = 0; partNum < vector->Npart(); ++partNum){
+    for(int partNum = 0, saveInd = 0; partNum < vector->Npart();
+      ++partNum, ++saveInd){
       const NeutPart& part = (*vector->PartInfo(partNum));
 
       if(partNum == 1){
         // As in TNeutOutput, to emulate neutgeom
         // StdHepX[1] is the target
-        outRooTracker->StdHepPdg[1] =
+        outRooTracker->StdHepPdg[saveInd] =
           PGUtils::MakeNuclearPDG(vector->TargetZ, vector->TargetA);
-        outRooTracker->StdHepP4[1][kNStdHepIdxE] = vector->TargetA;
+        outRooTracker->StdHepP4[saveInd][kNStdHepIdxE] = vector->TargetA;
         if(verbosity > 1){
           std::cout << "TARGET"
             << "\n\tA: " << vector->TargetA
             << "\n\tZ: " << vector->TargetZ
-            << "\n\tPDG: " << outRooTracker->StdHepPdg[partNum]
-            << "\n\tStatus: " << outRooTracker->StdHepStatus[partNum]
+            << "\n\tPDG: " << outRooTracker->StdHepPdg[saveInd]
+            << "\n\tStatus: " << outRooTracker->StdHepStatus[saveInd]
             << "\n\tHEPP4: " << PGUtils::PrintArray(
-              outRooTracker->StdHepP4[partNum])
+              outRooTracker->StdHepP4[saveInd])
             << "\n\tIsBoundTarget: " << outRooTracker->IsBound
             << std::endl;
         }
-        continue;
+
+        //Now save the struck nucleon properties
+        ++saveInd;
       }
 
-      outRooTracker->StdHepPdg[partNum] = part.fPID;
+      outRooTracker->StdHepPdg[saveInd] = part.fPID;
 
       switch(part.fStatus){
         case -1:{
-          outRooTracker->StdHepStatus[partNum] = 0;
+          outRooTracker->StdHepStatus[saveInd] = 0;
           break;
         }
         case 0:{
-          outRooTracker->StdHepStatus[partNum] = 1;
+          outRooTracker->StdHepStatus[saveInd] = 1;
           break;
         }
         case 2:{
-          outRooTracker->StdHepStatus[partNum] = 1;
+          outRooTracker->StdHepStatus[saveInd] = 1;
           break;
         }
         default:{
           if(verbosity > 1){
             std::cout << "--Found other neutcode: " << part.fStatus << std::endl;
-            outRooTracker->StdHepStatus[partNum] =
+            outRooTracker->StdHepStatus[saveInd] =
               (part.fStatus==1)?-1:part.fStatus;
           }
         }
       }
+      if(partNum == 1 && part.fStatus == -1){
+        outRooTracker->StdHepStatus[saveInd] = 11; //To sync with GENIE code for
+        //Struck Nucleon.
+      }
 
       if(OutputInGev){
         static constexpr float MeVToGeV = 1.0/1000;
-        outRooTracker->StdHepP4[partNum][kNStdHepIdxPx] = part.fP.X()*MeVToGeV;
-        outRooTracker->StdHepP4[partNum][kNStdHepIdxPy] = part.fP.Y()*MeVToGeV;
-        outRooTracker->StdHepP4[partNum][kNStdHepIdxPz] = part.fP.Z()*MeVToGeV;
-        outRooTracker->StdHepP4[partNum][kNStdHepIdxE] = part.fP.E()*MeVToGeV;
+        outRooTracker->StdHepP4[saveInd][kNStdHepIdxPx] = part.fP.X()*MeVToGeV;
+        outRooTracker->StdHepP4[saveInd][kNStdHepIdxPy] = part.fP.Y()*MeVToGeV;
+        outRooTracker->StdHepP4[saveInd][kNStdHepIdxPz] = part.fP.Z()*MeVToGeV;
+        outRooTracker->StdHepP4[saveInd][kNStdHepIdxE] = part.fP.E()*MeVToGeV;
       } else {
-        outRooTracker->StdHepP4[partNum][kNStdHepIdxPx] = part.fP.X();
-        outRooTracker->StdHepP4[partNum][kNStdHepIdxPy] = part.fP.Y();
-        outRooTracker->StdHepP4[partNum][kNStdHepIdxPz] = part.fP.Z();
-        outRooTracker->StdHepP4[partNum][kNStdHepIdxE] = part.fP.E();
+        outRooTracker->StdHepP4[saveInd][kNStdHepIdxPx] = part.fP.X();
+        outRooTracker->StdHepP4[saveInd][kNStdHepIdxPy] = part.fP.Y();
+        outRooTracker->StdHepP4[saveInd][kNStdHepIdxPz] = part.fP.Z();
+        outRooTracker->StdHepP4[saveInd][kNStdHepIdxE] = part.fP.E();
       }
 
       if(verbosity > 1){
-        std::cout << ((partNum>1)?"Particle:":"Incoming Neutrino:")
-          << "\n\tStdHEPPDG: " << outRooTracker->StdHepPdg[partNum]
-          << "\n\tStdHEPStatus: " << outRooTracker->StdHepStatus[partNum]
+        std::cout << ((saveInd>1)?"Particle:":"Incoming Neutrino:")
+          << "\n\tStdHEPPDG: " << outRooTracker->StdHepPdg[saveInd]
+          << "\n\tStdHEPStatus: " << outRooTracker->StdHepStatus[saveInd]
           << "\n\tStdHEPP4: " << PGUtils::PrintArray(
-            outRooTracker->StdHepP4[partNum])
+            outRooTracker->StdHepP4[saveInd])
           << std::endl;
       }
 
       //Not implemented in NEUT
-      (void)outRooTracker->StdHepX4[partNum][kNStdHepIdxX];
-      (void)outRooTracker->StdHepX4[partNum][kNStdHepIdxY];
-      (void)outRooTracker->StdHepX4[partNum][kNStdHepIdxZ];
-      (void)outRooTracker->StdHepX4[partNum][kNStdHepIdxT];
-      (void)outRooTracker->StdHepPolz[partNum][kNStdHepIdxPx];
-      (void)outRooTracker->StdHepPolz[partNum][kNStdHepIdxPy];
-      (void)outRooTracker->StdHepPolz[partNum][kNStdHepIdxPz];
-      (void)outRooTracker->StdHepPolz[partNum][kNStdHepIdxE];
+      (void)outRooTracker->StdHepX4[saveInd][kNStdHepIdxX];
+      (void)outRooTracker->StdHepX4[saveInd][kNStdHepIdxY];
+      (void)outRooTracker->StdHepX4[saveInd][kNStdHepIdxZ];
+      (void)outRooTracker->StdHepX4[saveInd][kNStdHepIdxT];
+      (void)outRooTracker->StdHepPolz[saveInd][kNStdHepIdxPx];
+      (void)outRooTracker->StdHepPolz[saveInd][kNStdHepIdxPy];
+      (void)outRooTracker->StdHepPolz[saveInd][kNStdHepIdxPz];
+      (void)outRooTracker->StdHepPolz[saveInd][kNStdHepIdxE];
     }
 
     //**************************************************
@@ -264,7 +286,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     }
     outRooTracker->Reset();
   }
-  std::cout << "Wrote " << FilledEntries << "events to disk." << std::endl;
+  std::cout << "Wrote " << FilledEntries << " events to disk." << std::endl;
   rooTrackerTree->Write();
   outFile->Close();
   return 0;
@@ -281,25 +303,40 @@ void SetOpts(){
 
   CLIArgs::OptSpec.emplace_back("-i", "--input-file", true,
     [&] (std::string const &opt) -> bool {
-      std::cout << "\tReading from file descriptor : " << opt << std::endl;
+      std::cout << "\t--Reading from file descriptor : " << opt << std::endl;
       inpfdescript = opt;
       return true;
     }, true,[](){},"<TChain::Add descriptor>");
 
   CLIArgs::OptSpec.emplace_back("-o", "--output-file", true,
     [&] (std::string const &opt) -> bool {
-      std::cout << "\tWriting to File: " << opt << std::endl;
+      std::cout << "\t--Writing to File: " << opt << std::endl;
       outfname = opt;
       return true;
     }, false,
     [&](){outfname = "vector.ntrac.root";},
     "<File Name>{default=vector.ntrac.root}");
 
+  CLIArgs::OptSpec.emplace_back("-n", "--nentries", true,
+    [&] (std::string const &opt) -> bool {
+      long vbhold;
+      if(PGUtils::str2int(vbhold,opt.c_str()) == PGUtils::STRINT_SUCCESS){
+        if(vbhold != -1){
+          std::cout << "\t--Looking at, at most, " << vbhold << " entries."
+            << std::endl;
+        }
+        MaxEntries = vbhold;
+        return true;
+      }
+      return false;
+    }, false,
+    [&](){MaxEntries = -1;}, "<-1>: Read all {default=-1}");
+
   CLIArgs::OptSpec.emplace_back("-v", "--verbosity", true,
     [&] (std::string const &opt) -> bool {
       int vbhold;
       if(PGUtils::str2int(vbhold,opt.c_str()) == PGUtils::STRINT_SUCCESS){
-        std::cout << "Verbosity: " << vbhold << std::endl;
+        std::cout << "\t--Verbosity: " << vbhold << std::endl;
         verbosity = vbhold;
         return true;
       }
@@ -309,7 +346,7 @@ void SetOpts(){
 
   CLIArgs::OptSpec.emplace_back("-s", "--simple-tree", false,
     [&] (std::string const &opt) -> bool {
-      std::cout << "Using simple tree." << std::endl;
+      std::cout << "\t--Using simple tree." << std::endl;
       useSimpleTree = true;
       return true;
     }, false,
@@ -317,7 +354,7 @@ void SetOpts(){
 
   CLIArgs::OptSpec.emplace_back("-G", "--GeV-mode", false,
     [&] (std::string const &opt) -> bool {
-      std::cout << "Outputting in GeV." << std::endl;
+      std::cout << "\t--Outputting in GeV." << std::endl;
       OutputInGev = true;
       return true;
     }, false,
@@ -325,7 +362,7 @@ void SetOpts(){
 
   CLIArgs::OptSpec.emplace_back("-O", "--objectify-output", false,
     [&] (std::string const &opt) -> bool {
-      std::cout << "Using simple tree." << std::endl;
+      std::cout << "\t--Using simple tree." << std::endl;
       ObjectOutput = true;
       return true;
     }, false,
@@ -333,7 +370,7 @@ void SetOpts(){
 
   CLIArgs::OptSpec.emplace_back("-b", "--save-isbound", false,
     [&] (std::string const &opt) -> bool {
-      std::cout << "Adding IsBound branch to output tree." << std::endl;
+      std::cout << "\t--Adding IsBound branch to output tree." << std::endl;
       SaveIsBound = true;
       return true;
     }, false,
