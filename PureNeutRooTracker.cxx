@@ -5,7 +5,7 @@
 #include "PureNeutRooTracker.hxx"
 
 NRooTrackerVtx::NRooTrackerVtx(){
-  EvtCode = new TString("");
+  EvtCode = new TObjString("");
   StdHepPdg = new Int_t[kNStdHepNPmax];
   StdHepStatus = new Int_t[kNStdHepNPmax];
   StdHepFd = new Int_t[kNStdHepNPmax];

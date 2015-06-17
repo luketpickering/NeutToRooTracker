@@ -99,7 +99,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     //Event Level
     std::stringstream ss("");
     ss << vector->Mode;
-    (*outRooTracker->EvtCode) = ss.str();
+    outRooTracker->EvtCode->SetString(ss.str().c_str());
     outRooTracker->EvtNum = vector->EventNo;
     outRooTracker->EvtXSec = vector->Totcrs;
 
@@ -130,7 +130,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
       std::cout << "Vector #:" << entryNum << std::endl;
       std::cout << "\tNPrimary: " << vector->Npart() << std::endl;
       std::cout << "\tNPrimary: " << vector->Nprimary() << std::endl;
-      std::cout << "\tEvtCode: " << (*outRooTracker->EvtCode) << std::endl;
+      std::cout << "\tEvtCode: " << outRooTracker->EvtCode->String() << std::endl;
       std::cout << "\tEvtXSec: " << outRooTracker->EvtXSec << std::endl;
       std::cout << "\tNEcrsx: " << outRooTracker->NEcrsx << std::endl;
       std::cout << "\tNEcrsy: " << outRooTracker->NEcrsy << std::endl;

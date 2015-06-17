@@ -1,5 +1,6 @@
 #include "TObject.h"
 #include "TString.h"
+#include "TObjString.h"
 #include "TTree.h"
 
 const int kNStdHepNPmax = 100;
@@ -36,7 +37,7 @@ public:
   //****************** Define the output rootracker tree branches
 
   ///generator-specific string with 'event code'
-  TString* EvtCode;
+  TObjString* EvtCode;
   ///event num.
   Int_t EvtNum;
   ///cross section for selected event (1E-38 cm2) CORRECT
