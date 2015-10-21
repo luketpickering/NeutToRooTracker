@@ -295,20 +295,20 @@ int NeutToRooTracker(const char* InputFileDescriptor){
 namespace {
 
 void SetOpts(){
-  CLIArgs::OptSpec.emplace_back("-h","--help", false,
+  CLIArgs::AddOpt("-h","--help", false,
     [&] (std::string const &opt) -> bool {
       CLIArgs::SayRunLike();
       exit(0);
     });
 
-  CLIArgs::OptSpec.emplace_back("-i", "--input-file", true,
+  CLIArgs::AddOpt("-i", "--input-file", true,
     [&] (std::string const &opt) -> bool {
       std::cout << "\t--Reading from file descriptor : " << opt << std::endl;
       inpfdescript = opt;
       return true;
     }, true,[](){},"<TChain::Add descriptor>");
 
-  CLIArgs::OptSpec.emplace_back("-o", "--output-file", true,
+  CLIArgs::AddOpt("-o", "--output-file", true,
     [&] (std::string const &opt) -> bool {
       std::cout << "\t--Writing to File: " << opt << std::endl;
       outfname = opt;
@@ -317,7 +317,7 @@ void SetOpts(){
     [&](){outfname = "vector.ntrac.root";},
     "<File Name>{default=vector.ntrac.root}");
 
-  CLIArgs::OptSpec.emplace_back("-n", "--nentries", true,
+  CLIArgs::AddOpt("-n", "--nentries", true,
     [&] (std::string const &opt) -> bool {
       long vbhold;
       if(PGUtils::str2int(vbhold,opt.c_str()) == PGUtils::STRINT_SUCCESS){
@@ -332,7 +332,7 @@ void SetOpts(){
     }, false,
     [&](){MaxEntries = -1;}, "<-1>: Read all {default=-1}");
 
-  CLIArgs::OptSpec.emplace_back("-v", "--verbosity", true,
+  CLIArgs::AddOpt("-v", "--verbosity", true,
     [&] (std::string const &opt) -> bool {
       int vbhold;
       if(PGUtils::str2int(vbhold,opt.c_str()) == PGUtils::STRINT_SUCCESS){
@@ -344,7 +344,7 @@ void SetOpts(){
     }, false,
     [&](){verbosity = 0;}, "<0-4>{default=0}");
 
-  CLIArgs::OptSpec.emplace_back("-s", "--simple-tree", false,
+  CLIArgs::AddOpt("-s", "--simple-tree", false,
     [&] (std::string const &opt) -> bool {
       std::cout << "\t--Using simple tree." << std::endl;
       useSimpleTree = true;
@@ -352,7 +352,7 @@ void SetOpts(){
     }, false,
     [&](){useSimpleTree = false;}, "Only output StdHep.");
 
-  CLIArgs::OptSpec.emplace_back("-G", "--GeV-mode", false,
+  CLIArgs::AddOpt("-G", "--GeV-mode", false,
     [&] (std::string const &opt) -> bool {
       std::cout << "\t--Outputting in GeV." << std::endl;
       OutputInGev = true;
@@ -360,7 +360,7 @@ void SetOpts(){
     }, false,
     [&](){OutputInGev = false;}, "Use GeV rather than MeV.");
 
-  CLIArgs::OptSpec.emplace_back("-O", "--objectify-output", false,
+  CLIArgs::AddOpt("-O", "--objectify-output", false,
     [&] (std::string const &opt) -> bool {
       std::cout << "\t--Using simple tree." << std::endl;
       ObjectOutput = true;
@@ -368,7 +368,7 @@ void SetOpts(){
     }, false,
     [&](){ObjectOutput = false;}, "Output object tree.");
 
-  CLIArgs::OptSpec.emplace_back("-b", "--save-isbound", false,
+  CLIArgs::AddOpt("-b", "--save-isbound", false,
     [&] (std::string const &opt) -> bool {
       std::cout << "\t--Adding IsBound branch to output tree." << std::endl;
       SaveIsBound = true;
@@ -382,7 +382,7 @@ int main(int argc, char const * argv[]){
   SetOpts();
 
   CLIArgs::AddArguments(argc,argv);
-  if(!CLIArgs::GetOpts()){
+  if(!CLIArgs::HandleArgs()){
     CLIArgs::SayRunLike();
     return 1;
   }
