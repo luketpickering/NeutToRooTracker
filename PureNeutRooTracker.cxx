@@ -212,4 +212,53 @@ void NRooTrackerVtx::AddBranches(TTree* &tree,
   tree->Branch("GeneratorName", &GeneratorName);
 
 }
+
+NRooTrackerVtxB::NRooTrackerVtxB(){
+  EvtCode = new TObjString("");
+  StdHepPdg = new Int_t[kNStdHepNPmax];
+  StdHepStatus = new Int_t[kNStdHepNPmax];
+
+}
+
+NRooTrackerVtxB::~NRooTrackerVtxB(){
+  if(EvtCode){ delete EvtCode; }
+  if(StdHepPdg) { delete [] StdHepPdg; }
+  if(StdHepStatus) { delete [] StdHepStatus; }
+
+}
+
+void NRooTrackerVtxB::Reset(){
+
+  (*EvtCode) = "";
+  EvtNum = 0;
+
+  StdHepN = 0;
+
+  PGUtils::ClearPointer(StdHepPdg,kNStdHepNPmax);
+  PGUtils::ClearPointer(StdHepStatus,kNStdHepNPmax);
+  PGUtils::ClearArray2D(StdHepP4);
+
+  IsBound = 0;
+
+}
+
+void NRooTrackerVtxB::AddBranches(TTree* &tree,
+  bool SimpleTree,
+  bool SaveIsBound){
+
+  std::string NStdHepNPmaxstr = PGUtils::int2str(kNStdHepNPmax);
+
+  tree->Branch("EvtCode", &EvtCode);
+  tree->Branch("EvtNum", &EvtNum,"EvtNum/I");
+  tree->Branch("StdHepN", &StdHepN,"StdHepN/I");
+  tree->Branch("StdHepPdg", StdHepPdg,"StdHepPdg[StdHepN]/I");
+  tree->Branch("StdHepStatus", StdHepStatus,"StdHepStatus[StdHepN]/I");
+  tree->Branch("StdHepP4", StdHepP4,
+    ("StdHepP4["+NStdHepNPmaxstr+"][4]/D").c_str());
+
+  if(SaveIsBound){ tree->Branch("IsBound", &IsBound, "IsBound/I"); }
+
+}
+
+ClassImp(NRooTrackerVtxB);
 ClassImp(NRooTrackerVtx);

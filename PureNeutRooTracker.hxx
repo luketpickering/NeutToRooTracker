@@ -17,7 +17,34 @@ const int kNEmaxvc = 100;
 const int kNEmaxvert = 100;
 const int kNEmaxvertp = 300;
 
-class NRooTrackerVtx : public TObject {
+class NRooTrackerVtxB : public TObject {
+public:
+  NRooTrackerVtxB();
+  virtual void Reset();
+  virtual ~NRooTrackerVtxB();
+  virtual void AddBranches(TTree* &tree, bool SimpleTree=false, bool SaveIsBound=false);
+  ///generator-specific string with 'event code'
+  TObjString* EvtCode;
+  ///event num.
+  Int_t EvtNum;
+  ///number of particles in particle array
+  Int_t StdHepN;
+  //******************* stdhep-like particle array
+
+  /// pdg codes (& generator specific codes for pseudoparticles)
+  Int_t* StdHepPdg; //[StdHepN]
+  /// generator-specific status code
+  Int_t* StdHepStatus; //[StdHepN]
+  /// 4-p (px,py,pz,E) of particle in LAB frame (GeV) CORRECT
+  Double_t StdHepP4 [kNStdHepNPmax][4];
+
+  ///IBound
+  Int_t IsBound;
+
+  ClassDef(NRooTrackerVtxB, 1);
+};
+
+class NRooTrackerVtx : public NRooTrackerVtxB {
 
 ///\brief Maximum possible number of saved NFNucleonVertices
 ///\detailed This is set to mirror the equivalent parameter in the NEUT
@@ -37,9 +64,9 @@ public:
   //****************** Define the output rootracker tree branches
 
   ///generator-specific string with 'event code'
-  TObjString* EvtCode;
+  // TObjString* EvtCode;
   ///event num.
-  Int_t EvtNum;
+  // Int_t EvtNum;
   ///cross section for selected event (1E-38 cm2) CORRECT
   Double_t EvtXSec;
   ///cross section for selected event kinematics (1E-38 cm2 /{K^n}) CORRECT
@@ -51,23 +78,23 @@ public:
   ///event vertex position in detector coord syst (SI) CORRECT
   Double_t EvtVtx[4];
   ///number of particles in particle array
-  Int_t StdHepN;
+  // Int_t StdHepN;
 
   //******************* stdhep-like particle array
 
   /// pdg codes (& generator specific codes for pseudoparticles)
-  Int_t* StdHepPdg; //[StdHepN]
+  // Int_t* StdHepPdg; //[StdHepN]
   /// generator-specific status code
-  Int_t* StdHepStatus; //[StdHepN]
+  // Int_t* StdHepStatus; //[StdHepN]
   /// 4-x (x, y, z, t) of particle in hit nucleus frame (fm) CORRECT
   Double_t StdHepX4 [kNStdHepNPmax][4];
   /// 4-p (px,py,pz,E) of particle in LAB frame (GeV) CORRECT
-  Double_t StdHepP4 [kNStdHepNPmax][4];
+  // Double_t StdHepP4 [kNStdHepNPmax][4];
   /// polarization vector CORRECT
   Double_t StdHepPolz [kNStdHepNPmax][3];
 
   ///IBound
-  Int_t IsBound;
+  // Int_t IsBound;
 
   /// first daughter
   Int_t* StdHepFd; //[StdHepN]

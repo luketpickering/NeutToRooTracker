@@ -26,6 +26,8 @@ bool ObjectOutput = false;
 bool useSimpleTree = false;
 bool OutputInGev = false;
 bool SaveIsBound = false;
+bool LiteMode = false;
+bool EmulateNuWro = false;
 int verbosity = 0;
 long MaxEntries = 0;
 }
@@ -71,7 +73,15 @@ int NeutToRooTracker(const char* InputFileDescriptor){
   }
 
   TTree* rooTrackerTree = new TTree("nRooTracker","Pure NEUT RooTracker");
-  NRooTrackerVtx* outRooTracker = new NRooTrackerVtx();
+  NRooTrackerVtxB* outRooTracker = nullptr;
+  NRooTrackerVtx* FullRooTracker = nullptr;
+  if(LiteMode){
+    outRooTracker = new NRooTrackerVtxB();
+  } else {
+    FullRooTracker = new NRooTrackerVtx();
+    outRooTracker = FullRooTracker;
+  }
+
   if(ObjectOutput){
     rooTrackerTree->Branch("nRooTracker", &outRooTracker);
   } else {
@@ -101,17 +111,20 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     ss << vector->Mode;
     outRooTracker->EvtCode->SetString(ss.str().c_str());
     outRooTracker->EvtNum = vector->EventNo;
-    outRooTracker->EvtXSec = vector->Totcrs;
 
-    outRooTracker->NEcrsx = vector->Crsx;
-    outRooTracker->NEcrsy = vector->Crsy;
-    outRooTracker->NEcrsz = vector->Crsz;
-    outRooTracker->NEcrsphi = vector->Crsphi;
+    if(!LiteMode){
+      FullRooTracker->EvtXSec = vector->Totcrs;
 
-    (void)outRooTracker->EvtVtx[0];
-    (void)outRooTracker->EvtVtx[0];
-    (void)outRooTracker->EvtVtx[0];
-    (void)outRooTracker->EvtVtx[0];
+      FullRooTracker->NEcrsx = vector->Crsx;
+      FullRooTracker->NEcrsy = vector->Crsy;
+      FullRooTracker->NEcrsz = vector->Crsz;
+      FullRooTracker->NEcrsphi = vector->Crsphi;
+
+      (void)FullRooTracker->EvtVtx[0];
+      (void)FullRooTracker->EvtVtx[0];
+      (void)FullRooTracker->EvtVtx[0];
+      (void)FullRooTracker->EvtVtx[0];
+    }
 
     //**************************************************
     //StdHepN Particles
@@ -126,20 +139,6 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     << std::endl;
     }
 
-    if(verbosity > 1){
-      std::cout << "Vector #:" << entryNum << std::endl;
-      std::cout << "\tNPrimary: " << vector->Npart() << std::endl;
-      std::cout << "\tNPrimary: " << vector->Nprimary() << std::endl;
-      std::cout << "\tEvtCode: " << outRooTracker->EvtCode->String() << std::endl;
-      std::cout << "\tEvtXSec: " << outRooTracker->EvtXSec << std::endl;
-      std::cout << "\tNEcrsx: " << outRooTracker->NEcrsx << std::endl;
-      std::cout << "\tNEcrsy: " << outRooTracker->NEcrsy << std::endl;
-      std::cout << "\tNEcrsz: " << outRooTracker->NEcrsz << std::endl;
-      std::cout << "\tNEcrsphi: " << outRooTracker->NEcrsphi << std::endl;
-      std::cout << "\tNOutgoing Particles: " << vector->Npart() << std::endl;
-      std::cout << std::endl;
-    }
-
     //Fill the particle info
     outRooTracker->StdHepN = vector->Npart()+1;//Need to include nuclear target.
     outRooTracker->IsBound = vector->Ibound;
@@ -148,7 +147,40 @@ int NeutToRooTracker(const char* InputFileDescriptor){
       ++partNum, ++saveInd){
       const NeutPart& part = (*vector->PartInfo(partNum));
 
-      if(partNum == 1){
+      if((partNum == 1) && EmulateNuWro){
+        // As in nuwro2rootracker partnum 1 should have P4 of the struck
+        // nucleon but the PDG of the target
+        outRooTracker->StdHepPdg[saveInd] =
+          PGUtils::MakeNuclearPDG(vector->TargetZ, vector->TargetA);
+        outRooTracker->StdHepStatus[saveInd] = 11;
+        //Now save the struck nucleon properties
+        if(OutputInGev){
+          static constexpr float MeVToGeV = 1.0/1000;
+          outRooTracker->StdHepP4[saveInd][kNStdHepIdxPx] = part.fP.X()*MeVToGeV;
+          outRooTracker->StdHepP4[saveInd][kNStdHepIdxPy] = part.fP.Y()*MeVToGeV;
+          outRooTracker->StdHepP4[saveInd][kNStdHepIdxPz] = part.fP.Z()*MeVToGeV;
+          outRooTracker->StdHepP4[saveInd][kNStdHepIdxE] = part.fP.E()*MeVToGeV;
+        } else {
+          outRooTracker->StdHepP4[saveInd][kNStdHepIdxPx] = part.fP.X();
+          outRooTracker->StdHepP4[saveInd][kNStdHepIdxPy] = part.fP.Y();
+          outRooTracker->StdHepP4[saveInd][kNStdHepIdxPz] = part.fP.Z();
+          outRooTracker->StdHepP4[saveInd][kNStdHepIdxE] = part.fP.E();
+        }
+
+        //Not implemented in NEUT
+        if(!LiteMode){
+          (void)FullRooTracker->StdHepX4[saveInd][kNStdHepIdxX];
+          (void)FullRooTracker->StdHepX4[saveInd][kNStdHepIdxY];
+          (void)FullRooTracker->StdHepX4[saveInd][kNStdHepIdxZ];
+          (void)FullRooTracker->StdHepX4[saveInd][kNStdHepIdxT];
+          (void)FullRooTracker->StdHepPolz[saveInd][kNStdHepIdxPx];
+          (void)FullRooTracker->StdHepPolz[saveInd][kNStdHepIdxPy];
+          (void)FullRooTracker->StdHepPolz[saveInd][kNStdHepIdxPz];
+          (void)FullRooTracker->StdHepPolz[saveInd][kNStdHepIdxE];
+        }
+
+        continue;
+      } else if(partNum == 1){
         // As in TNeutOutput, to emulate neutgeom
         // StdHepX[1] is the target
         outRooTracker->StdHepPdg[saveInd] =
@@ -221,64 +253,67 @@ int NeutToRooTracker(const char* InputFileDescriptor){
       }
 
       //Not implemented in NEUT
-      (void)outRooTracker->StdHepX4[saveInd][kNStdHepIdxX];
-      (void)outRooTracker->StdHepX4[saveInd][kNStdHepIdxY];
-      (void)outRooTracker->StdHepX4[saveInd][kNStdHepIdxZ];
-      (void)outRooTracker->StdHepX4[saveInd][kNStdHepIdxT];
-      (void)outRooTracker->StdHepPolz[saveInd][kNStdHepIdxPx];
-      (void)outRooTracker->StdHepPolz[saveInd][kNStdHepIdxPy];
-      (void)outRooTracker->StdHepPolz[saveInd][kNStdHepIdxPz];
-      (void)outRooTracker->StdHepPolz[saveInd][kNStdHepIdxE];
+      if(!LiteMode){
+        (void)FullRooTracker->StdHepX4[saveInd][kNStdHepIdxX];
+        (void)FullRooTracker->StdHepX4[saveInd][kNStdHepIdxY];
+        (void)FullRooTracker->StdHepX4[saveInd][kNStdHepIdxZ];
+        (void)FullRooTracker->StdHepX4[saveInd][kNStdHepIdxT];
+        (void)FullRooTracker->StdHepPolz[saveInd][kNStdHepIdxPx];
+        (void)FullRooTracker->StdHepPolz[saveInd][kNStdHepIdxPy];
+        (void)FullRooTracker->StdHepPolz[saveInd][kNStdHepIdxPz];
+        (void)FullRooTracker->StdHepPolz[saveInd][kNStdHepIdxE];
+      }
     }
 
-    //**************************************************
-    //NEUT VCWork Particles
-    //Not yet implemented.
-    outRooTracker->NEnvc = 1;
-    for(int i = 0; i < outRooTracker->NEnvc; ++i){
-      (void)outRooTracker->NEpvc[i];
-      (void)outRooTracker->NEiorgvc[i];
-      (void)outRooTracker->NEiflgvc[i];
-      (void)outRooTracker->NEicrnvc[i];
+    if(!LiteMode){
+      //**************************************************
+      //NEUT VCWork Particles
+      //Not yet implemented.
+      FullRooTracker->NEnvc = 1;
+      for(int i = 0; i < FullRooTracker->NEnvc; ++i){
+        (void)FullRooTracker->NEpvc[i];
+        (void)FullRooTracker->NEiorgvc[i];
+        (void)FullRooTracker->NEiflgvc[i];
+        (void)FullRooTracker->NEicrnvc[i];
+      }
+
+      //**************************************************
+      //NEUT Pion FSI interaction history
+      //Not yet implemented
+      FullRooTracker->NEnvert = 1;
+
+      for(int i = 0; i < FullRooTracker->NEnvert; ++i){
+        (void)FullRooTracker->NEposvert[i];
+        (void)FullRooTracker->NEiflgvert[i];
+      }
+
+      FullRooTracker->NEnvcvert = 1;
+      for(int i = 0; i < FullRooTracker->NEnvcvert; ++i){
+        (void)FullRooTracker->NEdirvert[i];
+        (void)FullRooTracker->NEabspvert[i];
+        (void)FullRooTracker->NEabstpvert[i];
+        (void)FullRooTracker->NEipvert[i];
+        (void)FullRooTracker->NEiverti[i];
+        (void)FullRooTracker->NEivertf[i];
+      }
+
+      //**************************************************
+      //NEUT Nucleon FSI interaction history
+      //Not yet implemented
+      FullRooTracker->NFnvert = 1;
+      (void)FullRooTracker->NFiflag[0];
+      (void)FullRooTracker->NFx[0];
+      (void)FullRooTracker->NFy[0];
+      (void)FullRooTracker->NFz[0];
+      (void)FullRooTracker->NFpx[0];
+      (void)FullRooTracker->NFpy[0];
+      (void)FullRooTracker->NFpz[0];
+      (void)FullRooTracker->NFe[0];
+      (void)FullRooTracker->NFfirststep[0];
+
+      FullRooTracker->NFnstep = 1;
+      (void)FullRooTracker->NFecms2[0];
     }
-
-    //**************************************************
-    //NEUT Pion FSI interaction history
-    //Not yet implemented
-    outRooTracker->NEnvert = 1;
-
-    for(int i = 0; i < outRooTracker->NEnvert; ++i){
-      (void)outRooTracker->NEposvert[i];
-      (void)outRooTracker->NEiflgvert[i];
-    }
-
-    outRooTracker->NEnvcvert = 1;
-    for(int i = 0; i < outRooTracker->NEnvcvert; ++i){
-      (void)outRooTracker->NEdirvert[i];
-      (void)outRooTracker->NEabspvert[i];
-      (void)outRooTracker->NEabstpvert[i];
-      (void)outRooTracker->NEipvert[i];
-      (void)outRooTracker->NEiverti[i];
-      (void)outRooTracker->NEivertf[i];
-    }
-
-    //**************************************************
-    //NEUT Nucleon FSI interaction history
-    //Not yet implemented
-    outRooTracker->NFnvert = 1;
-    (void)outRooTracker->NFiflag[0];
-    (void)outRooTracker->NFx[0];
-    (void)outRooTracker->NFy[0];
-    (void)outRooTracker->NFz[0];
-    (void)outRooTracker->NFpx[0];
-    (void)outRooTracker->NFpy[0];
-    (void)outRooTracker->NFpz[0];
-    (void)outRooTracker->NFe[0];
-    (void)outRooTracker->NFfirststep[0];
-
-    outRooTracker->NFnstep = 1;
-    (void)outRooTracker->NFecms2[0];
-
     rooTrackerTree->Fill();
     FilledEntries++;
     if(verbosity > 1){
@@ -295,11 +330,6 @@ int NeutToRooTracker(const char* InputFileDescriptor){
 namespace {
 
 void SetOpts(){
-  CLIArgs::AddOpt("-h","--help", false,
-    [&] (std::string const &opt) -> bool {
-      CLIArgs::SayRunLike();
-      exit(0);
-    });
 
   CLIArgs::AddOpt("-i", "--input-file", true,
     [&] (std::string const &opt) -> bool {
@@ -375,6 +405,22 @@ void SetOpts(){
       return true;
     }, false,
     [&](){SaveIsBound = false;}, "Output IsBound Branch");
+
+  CLIArgs::AddOpt("-L", "--Lite-Mode", false,
+    [&] (std::string const &opt) -> bool {
+      std::cout << "\t--Running in Lite Mode." << std::endl;
+      LiteMode = true;
+      return true;
+    }, false,
+    [&](){LiteMode = false;}, "Run in Lite Mode");
+
+  CLIArgs::AddOpt("-E", "--Emulate-NuWro", false,
+    [&] (std::string const &opt) -> bool {
+      std::cout << "\t--Emulating the output of nuwro2rootracker." << std::endl;
+      EmulateNuWro = true;
+      return true;
+    }, false,
+    [&](){EmulateNuWro = false;}, "Emulate nuwro2rootracker more closely.");
 }
 }
 
