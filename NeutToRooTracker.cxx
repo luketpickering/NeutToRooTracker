@@ -85,7 +85,8 @@ int NeutToRooTracker(const char* InputFileDescriptor){
   if(ObjectOutput){
     rooTrackerTree->Branch("nRooTracker", &outRooTracker);
   } else {
-    outRooTracker->AddBranches(rooTrackerTree, useSimpleTree, SaveIsBound);
+    outRooTracker->AddBranches(rooTrackerTree, useSimpleTree, SaveIsBound,
+      EmulateNuWro);
   }
 
   long long doEntries = (MaxEntries==-1) ?

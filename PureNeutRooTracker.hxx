@@ -22,7 +22,8 @@ public:
   NRooTrackerVtxB();
   virtual void Reset();
   virtual ~NRooTrackerVtxB();
-  virtual void AddBranches(TTree* &tree, bool SimpleTree=false, bool SaveIsBound=false);
+  virtual void AddBranches(TTree* &tree, bool SimpleTree=false,
+    bool SaveIsBound=false, bool SaveStruckNucleonPDG=false);
   ///generator-specific string with 'event code'
   TObjString* EvtCode;
   ///event num.
@@ -40,6 +41,9 @@ public:
 
   ///IBound
   Int_t IsBound;
+
+  ///IBound
+  Int_t StruckNucleonPDG;
 
   ClassDef(NRooTrackerVtxB, 1);
 };
@@ -59,7 +63,8 @@ public:
   NRooTrackerVtx();
   void Reset();
   ~NRooTrackerVtx();
-  void AddBranches(TTree* &tree, bool SimpleTree=false, bool SaveIsBound=false);
+  void AddBranches(TTree* &tree, bool SimpleTree=false,
+    bool SaveIsBound=false, bool SaveStruckNucleonPDG=false);
 
   //****************** Define the output rootracker tree branches
 

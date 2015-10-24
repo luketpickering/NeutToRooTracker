@@ -141,7 +141,8 @@ void NRooTrackerVtx::Reset(){
 
 void NRooTrackerVtx::AddBranches(TTree* &tree,
   bool SimpleTree,
-  bool SaveIsBound){
+  bool SaveIsBound,
+  bool SaveStruckNucleonPDG){
 
   std::string NStdHepNPmaxstr = PGUtils::int2str(kNStdHepNPmax);
   std::string NEmaxvcstr = PGUtils::int2str(kNEmaxvc);
@@ -172,6 +173,7 @@ void NRooTrackerVtx::AddBranches(TTree* &tree,
   tree->Branch("StdHepLm", StdHepLm,"StdHepLm[StdHepN]/I");
 
   if(SaveIsBound){ tree->Branch("IsBound", &IsBound, "IsBound/I"); }
+  if(SaveStruckNucleonPDG){ tree->Branch("StruckNucleonPDG", &StruckNucleonPDG, "StruckNucleonPDG/I"); }
 
   if(SimpleTree){ return; }
 
@@ -244,7 +246,8 @@ void NRooTrackerVtxB::Reset(){
 
 void NRooTrackerVtxB::AddBranches(TTree* &tree,
   bool SimpleTree,
-  bool SaveIsBound){
+  bool SaveIsBound,
+  bool SaveStruckNucleonPDG){
 
   std::string NStdHepNPmaxstr = PGUtils::int2str(kNStdHepNPmax);
 
@@ -257,6 +260,7 @@ void NRooTrackerVtxB::AddBranches(TTree* &tree,
     ("StdHepP4["+NStdHepNPmaxstr+"][4]/D").c_str());
 
   if(SaveIsBound){ tree->Branch("IsBound", &IsBound, "IsBound/I"); }
+  if(SaveStruckNucleonPDG){ tree->Branch("StruckNucleonPDG", &StruckNucleonPDG, "StruckNucleonPDG/I"); }
 
 }
 
