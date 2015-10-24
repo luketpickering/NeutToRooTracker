@@ -167,6 +167,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
           outRooTracker->StdHepP4[saveInd][kNStdHepIdxPz] = part.fP.Z();
           outRooTracker->StdHepP4[saveInd][kNStdHepIdxE] = part.fP.E();
         }
+        outRooTracker->StruckNucleonPDG = part.fPID;
 
         //Not implemented in NEUT
         if(!LiteMode){
