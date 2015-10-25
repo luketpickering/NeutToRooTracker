@@ -19,17 +19,73 @@ std::ostream& operator<<(std::ostream& o, const TLorentzVector& tlv){
   return o << "[" << tlv.X() << ", " << tlv.Y() << ", " << tlv.Z() << ", "
     << tlv.T() <<  "]";
 }
+}
 
-std::string outfname;
-std::string inpfdescript;
+///Contains the variables affected by the CLI options.
+namespace NeutToRooTrackerOpts {
+///\brief The name to write the output \c TFile to.
+///
+///\details Passed with the \c -o CLI option.
+std::string OutFName;
+///\brief The input file descriptor string.
+///
+///\details This may contain wild cards which can be evaluated by \c TChain::Add
+///\warning If wildcards are needed it should be passed wrapped in quotes,
+///<tt>NeutToRooTracker.exe -i "Files*.root"</tt>, otherwise the shell will
+///expand the wildcard before passing the CLI options to \c main.
+///
+///Passed like <tt>NeutToRooTracker.exe -i "FilesToRead.root"</tt>
+std::string InpFDescript;
+///\brief Whether to objectify output.
+///
+///\details Due to the way <tt>TObject</tt>s are output this will implicitly
+///turn on \c IsBound and \c StruckNucleonPDG branches.
+///
+///Enabled with the \c -O CLI option.
 bool ObjectOutput = false;
-bool useSimpleTree = false;
+///\brief Whether to output in GeV, rather than the NEUT native MeV.
+///
+///\details Enabled with the \c -G CLI option.
 bool OutputInGev = false;
+///\brief Whether to save the <tt>IsBound</tt> flag for interactions.
+///
+///\details Demarcates whether the interaction took place on a proton or a
+///bound nucleus.
+///
+///Enabled with the \c -s CLI option
 bool SaveIsBound = false;
+///\brief Whether to run in Lite mode. Outputs a much smaller tree, with fewer
+///variables.
+///
+///\details Enabled with the \c -L CLI option.
 bool LiteMode = false;
+///\brief Whether to skip particles which NEUT decides should not enter the
+///detector.
+///
+///\details Sometimes NEUT outputs particles demarcated as not still alive or
+///having some other non-good status code.
+///
+///Enabling this with the \c -S CLI option will cause them to be not saved.
+bool SkipNonFS = false;
+///\brief Whether to try and emulate the NuWro flavor of rooTracker.
+///
+///\details This means that <tt>StdHepPdg[1]</tt> will contain the nuclear
+///target PDG code, <tt>StdHepP4[1]</tt> will contain the struck nucleon
+///4Momentum. This can be used to determine the invariant mass of the struck
+///nucleon and thus it's species. However activating this option will also cause
+///the <tt>StruckNucleonPDG</tt> branch to be written to the output file.
+///
+///Enabled with the \c -E CLI option.
 bool EmulateNuWro = false;
+///Increases the verbosity, settable with the \c -v CLI option.
 int verbosity = 0;
+///Max entries to read before exiting, settable with the \c -n CLI option.
 long MaxEntries = 0;
+///\brief Will not save events which identify as one of these NEUT modes.
+///
+///\details Modes to ingore are added via like
+/// <tt>NeutToRooTracker.exe  -I 1,2,27</tt>.
+std::vector<int> ModeIgnores;
 }
 
 int NeutToRooTracker(const char* InputFileDescriptor){
@@ -51,7 +107,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
   NeutTree->SetBranchAddress("vertexbranch",&vertex);
 
   long NEntries = NeutTree->GetEntries();
-  long FilledEntries = 0;
+  long FilledEntries = 0; long IgnoredEntries = 0;
 
   if(!NEntries){
     std::cout << "Failed to find any entries (" << NEntries
@@ -62,11 +118,11 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     << NEntries << " entries." << std::endl;
 
 //Output stuff
-  TFile* outFile = new TFile(outfname.c_str(),"CREATE");
+  TFile* outFile = new TFile(NeutToRooTrackerOpts::OutFName.c_str(),"CREATE");
 
   if(!outFile->IsOpen()){
-    std::cerr << "[ERROR]: Couldn't open output file: " << outfname
-    << std::endl;
+    std::cerr << "[ERROR]: Couldn't open output file: "
+      << NeutToRooTrackerOpts::OutFName << std::endl;
     return 8;
   } else {
     std::cout << "Created output file: " << outFile->GetName() << std::endl;
@@ -75,25 +131,25 @@ int NeutToRooTracker(const char* InputFileDescriptor){
   TTree* rooTrackerTree = new TTree("nRooTracker","Pure NEUT RooTracker");
   NRooTrackerVtxB* outRooTracker = nullptr;
   NRooTrackerVtx* FullRooTracker = nullptr;
-  if(LiteMode){
+  if(NeutToRooTrackerOpts::LiteMode){
     outRooTracker = new NRooTrackerVtxB();
   } else {
     FullRooTracker = new NRooTrackerVtx();
     outRooTracker = FullRooTracker;
   }
 
-  if(ObjectOutput){
+  if(NeutToRooTrackerOpts::ObjectOutput){
     rooTrackerTree->Branch("nRooTracker", &outRooTracker);
   } else {
-    outRooTracker->AddBranches(rooTrackerTree, useSimpleTree, SaveIsBound,
-      EmulateNuWro);
+    outRooTracker->AddBranches(rooTrackerTree,
+      NeutToRooTrackerOpts::SaveIsBound,
+      NeutToRooTrackerOpts::EmulateNuWro);
   }
 
-  long long doEntries = (MaxEntries==-1) ?
-    NEntries : (std::min(MaxEntries, NEntries));
+  long long doEntries = (NeutToRooTrackerOpts::MaxEntries==-1) ?
+    NEntries : (std::min(NeutToRooTrackerOpts::MaxEntries, NEntries));
 
   for(long entryNum = 0; entryNum < doEntries; ++entryNum){
-
     if( entryNum && (!(entryNum%10000)) ){
       std::cout << "Read " << entryNum << " entries." << std::endl;
     }
@@ -106,6 +162,20 @@ int NeutToRooTracker(const char* InputFileDescriptor){
       std::cout << "Read first entry!" << std::endl;
     }
 
+    if(NeutToRooTrackerOpts::ModeIgnores.size()){
+      bool found = false;
+      for(int const & mode: NeutToRooTrackerOpts::ModeIgnores){
+        if(mode == vector->Mode){
+          IgnoredEntries++;
+          found = true;
+          break;
+        }
+      }
+      if(found){
+        continue;
+      }
+    }
+
     //**************************************************
     //Event Level
     std::stringstream ss("");
@@ -113,7 +183,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     outRooTracker->EvtCode->SetString(ss.str().c_str());
     outRooTracker->EvtNum = vector->EventNo;
 
-    if(!LiteMode){
+    if(!NeutToRooTrackerOpts::LiteMode){
       FullRooTracker->EvtXSec = vector->Totcrs;
 
       FullRooTracker->NEcrsx = vector->Crsx;
@@ -130,32 +200,29 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     //**************************************************
     //StdHepN Particles
 
-    if(verbosity>3){
-      std::cout << "**"
-"******************************************************************************"
-    << std::endl;
-    vector->Dump();
-      std::cout << "**"
-"******************************************************************************"
-    << std::endl;
+    if(NeutToRooTrackerOpts::verbosity > 3){
+      std::cout << "**********************************************************"
+        "**********************"
+        << std::endl;
+      vector->Dump();
+      std::cout << "**********************************************************"
+        "**********************"
+        << std::endl;
     }
 
-    //Fill the particle info
-    outRooTracker->StdHepN = vector->Npart()+1;//Need to include nuclear target.
     outRooTracker->IsBound = vector->Ibound;
 
-    for(int partNum = 0, saveInd = 0; partNum < vector->Npart();
-      ++partNum, ++saveInd){
-      const NeutPart& part = (*vector->PartInfo(partNum));
+    int saveInd = 0;
+    for(int partNum = 0; partNum < vector->Npart(); ++partNum){
 
-      if((partNum == 1) && EmulateNuWro){
+      const NeutPart& part = (*vector->PartInfo(partNum));
+      if((partNum == 1) && NeutToRooTrackerOpts::EmulateNuWro){
         // As in nuwro2rootracker partnum 1 should have P4 of the struck
         // nucleon but the PDG of the target
         outRooTracker->StdHepPdg[saveInd] =
           PGUtils::MakeNuclearPDG(vector->TargetZ, vector->TargetA);
-        outRooTracker->StdHepStatus[saveInd] = 11;
         //Now save the struck nucleon properties
-        if(OutputInGev){
+        if(NeutToRooTrackerOpts::OutputInGev){
           static constexpr float MeVToGeV = 1.0/1000;
           outRooTracker->StdHepP4[saveInd][kNStdHepIdxPx] = part.fP.X()*MeVToGeV;
           outRooTracker->StdHepP4[saveInd][kNStdHepIdxPy] = part.fP.Y()*MeVToGeV;
@@ -170,7 +237,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
         outRooTracker->StruckNucleonPDG = part.fPID;
 
         //Not implemented in NEUT
-        if(!LiteMode){
+        if(!NeutToRooTrackerOpts::LiteMode){
           (void)FullRooTracker->StdHepX4[saveInd][kNStdHepIdxX];
           (void)FullRooTracker->StdHepX4[saveInd][kNStdHepIdxY];
           (void)FullRooTracker->StdHepX4[saveInd][kNStdHepIdxZ];
@@ -180,7 +247,7 @@ int NeutToRooTracker(const char* InputFileDescriptor){
           (void)FullRooTracker->StdHepPolz[saveInd][kNStdHepIdxPz];
           (void)FullRooTracker->StdHepPolz[saveInd][kNStdHepIdxE];
         }
-
+        ++saveInd;
         continue;
       } else if(partNum == 1){
         // As in TNeutOutput, to emulate neutgeom
@@ -188,51 +255,72 @@ int NeutToRooTracker(const char* InputFileDescriptor){
         outRooTracker->StdHepPdg[saveInd] =
           PGUtils::MakeNuclearPDG(vector->TargetZ, vector->TargetA);
         outRooTracker->StdHepP4[saveInd][kNStdHepIdxE] = vector->TargetA;
-        if(verbosity > 1){
-          std::cout << "TARGET"
-            << "\n\tA: " << vector->TargetA
-            << "\n\tZ: " << vector->TargetZ
-            << "\n\tPDG: " << outRooTracker->StdHepPdg[saveInd]
-            << "\n\tStatus: " << outRooTracker->StdHepStatus[saveInd]
-            << "\n\tHEPP4: " << PGUtils::PrintArray(
-              outRooTracker->StdHepP4[saveInd])
-            << "\n\tIsBoundTarget: " << outRooTracker->IsBound
-            << std::endl;
-        }
-
-        //Now save the struck nucleon properties
+        //Now incremebent the saveInd to save the struck nucleon properties
+        //but don't continue
         ++saveInd;
       }
 
       outRooTracker->StdHepPdg[saveInd] = part.fPID;
 
       switch(part.fStatus){
-        case -1:{
+        case -1:{ // Initial state
           outRooTracker->StdHepStatus[saveInd] = 0;
           break;
         }
-        case 0:{
-          outRooTracker->StdHepStatus[saveInd] = 1;
+        case 0:{ // Good
+          if(part.fIsAlive == 1){
+            outRooTracker->StdHepStatus[saveInd] = 1;
+          } else { //But also bad!?
+            outRooTracker->StdHepStatus[saveInd] = 2;
+            if(NeutToRooTrackerOpts::SkipNonFS){
+              if(NeutToRooTrackerOpts::verbosity){
+                std::cout << "[INFO]: Not saving particle status("
+                  << part.fStatus << ") as it was not 'IsAlive'." << std::endl;
+            }
+              continue;
+            }
+          }
           break;
         }
-        case 2:{
-          outRooTracker->StdHepStatus[saveInd] = 1;
+        case 2:{ // Escaped detector == Good
+          if(part.fIsAlive == 1){
+            outRooTracker->StdHepStatus[saveInd] = 1;
+            if(NeutToRooTrackerOpts::verbosity){
+              std::cout << "[INFO]: Found NEUT status 2 which was marked as "
+                "IsAlive. (PDG:" << outRooTracker->StdHepPdg[saveInd] << ")"
+                << std::endl;
+            }
+          } else { // But also bad.
+            outRooTracker->StdHepStatus[saveInd] = 2;
+            if(NeutToRooTrackerOpts::SkipNonFS){
+              if(NeutToRooTrackerOpts::verbosity){
+                std::cout << "[INFO]: Not saving particle status("
+                  << part.fStatus << ") as it was not 'IsAlive'. (PDG:"
+                  << outRooTracker->StdHepPdg[saveInd] << ")" << std::endl;
+              }
+              continue;
+            }
+          }
           break;
         }
         default:{
-          if(verbosity > 1){
-            std::cout << "--Found other neutcode: " << part.fStatus << std::endl;
-            outRooTracker->StdHepStatus[saveInd] =
-              (part.fStatus==1)?-1:part.fStatus;
+          if(NeutToRooTrackerOpts::verbosity > 1){
+            std::cout << "--Found unexpected neutcode: " << part.fStatus
+              << std::endl;
+          }
+            outRooTracker->StdHepStatus[saveInd] = part.fStatus;
+          if(NeutToRooTrackerOpts::SkipNonFS){
+            continue;
           }
         }
       }
-      if(partNum == 1 && part.fStatus == -1){
+      if( (!NeutToRooTrackerOpts::EmulateNuWro) &&
+          (partNum == 1) && (part.fStatus == -1)){
         outRooTracker->StdHepStatus[saveInd] = 11; //To sync with GENIE code for
         //Struck Nucleon.
       }
 
-      if(OutputInGev){
+      if(NeutToRooTrackerOpts::OutputInGev){
         static constexpr float MeVToGeV = 1.0/1000;
         outRooTracker->StdHepP4[saveInd][kNStdHepIdxPx] = part.fP.X()*MeVToGeV;
         outRooTracker->StdHepP4[saveInd][kNStdHepIdxPy] = part.fP.Y()*MeVToGeV;
@@ -245,17 +333,8 @@ int NeutToRooTracker(const char* InputFileDescriptor){
         outRooTracker->StdHepP4[saveInd][kNStdHepIdxE] = part.fP.E();
       }
 
-      if(verbosity > 1){
-        std::cout << ((saveInd>1)?"Particle:":"Incoming Neutrino:")
-          << "\n\tStdHEPPDG: " << outRooTracker->StdHepPdg[saveInd]
-          << "\n\tStdHEPStatus: " << outRooTracker->StdHepStatus[saveInd]
-          << "\n\tStdHEPP4: " << PGUtils::PrintArray(
-            outRooTracker->StdHepP4[saveInd])
-          << std::endl;
-      }
-
       //Not implemented in NEUT
-      if(!LiteMode){
+      if(!NeutToRooTrackerOpts::LiteMode){
         (void)FullRooTracker->StdHepX4[saveInd][kNStdHepIdxX];
         (void)FullRooTracker->StdHepX4[saveInd][kNStdHepIdxY];
         (void)FullRooTracker->StdHepX4[saveInd][kNStdHepIdxZ];
@@ -265,9 +344,27 @@ int NeutToRooTracker(const char* InputFileDescriptor){
         (void)FullRooTracker->StdHepPolz[saveInd][kNStdHepIdxPz];
         (void)FullRooTracker->StdHepPolz[saveInd][kNStdHepIdxE];
       }
+      saveInd++;
     }
 
-    if(!LiteMode){
+    outRooTracker->StdHepN = saveInd;
+
+    if(NeutToRooTrackerOpts::verbosity > 1){
+      std::cout <<  "(Int Mode: " << vector->Mode << ")" << std::endl;
+      for(int it = 0; it < outRooTracker->StdHepN; ++it){
+        std::cout
+          << ((it>0)? "Particle:":"Incoming Neutrino:") << " "
+          << it << "/" << outRooTracker->StdHepN << "(VectNPart:"
+          << vector->Npart() << ")"
+          << "\n\tStdHEPPDG: " << outRooTracker->StdHepPdg[it]
+          << "\n\tStdHEPStatus: " << outRooTracker->StdHepStatus[it]
+          << "\n\tStdHEPP4: " << PGUtils::PrintArray(
+            outRooTracker->StdHepP4[it])
+          << std::endl;
+      }
+    }
+
+    if(!NeutToRooTrackerOpts::LiteMode){
       //**************************************************
       //NEUT VCWork Particles
       //Not yet implemented.
@@ -318,35 +415,41 @@ int NeutToRooTracker(const char* InputFileDescriptor){
     }
     rooTrackerTree->Fill();
     FilledEntries++;
-    if(verbosity > 1){
+    if(NeutToRooTrackerOpts::verbosity > 1){
       std::cout << "*****************Filled*****************\n" << std::endl;
     }
     outRooTracker->Reset();
   }
-  std::cout << "Wrote " << FilledEntries << " events to disk." << std::endl;
+  std::cout << "Wrote " << FilledEntries << " events to disk." << std::flush;
+  if(NeutToRooTrackerOpts::ModeIgnores.size()){
+    std::cout << " Ignored " << IgnoredEntries << " entries based on "
+      "interaction mode. " << std::flush;
+  } std::cout << std::endl;
+
   rooTrackerTree->Write();
   outFile->Close();
   return 0;
 }
 
-namespace {
+namespace NeutToRooTrackerOpts {
 
+///CLI option and value handling implementation.
 void SetOpts(){
 
   CLIArgs::AddOpt("-i", "--input-file", true,
     [&] (std::string const &opt) -> bool {
       std::cout << "\t--Reading from file descriptor : " << opt << std::endl;
-      inpfdescript = opt;
+      InpFDescript = opt;
       return true;
     }, true,[](){},"<TChain::Add descriptor>");
 
   CLIArgs::AddOpt("-o", "--output-file", true,
     [&] (std::string const &opt) -> bool {
       std::cout << "\t--Writing to File: " << opt << std::endl;
-      outfname = opt;
+      OutFName = opt;
       return true;
     }, false,
-    [&](){outfname = "vector.ntrac.root";},
+    [&](){OutFName = "vector.ntrac.root";},
     "<File Name>{default=vector.ntrac.root}");
 
   CLIArgs::AddOpt("-n", "--nentries", true,
@@ -375,14 +478,6 @@ void SetOpts(){
       return false;
     }, false,
     [&](){verbosity = 0;}, "<0-4>{default=0}");
-
-  CLIArgs::AddOpt("-s", "--simple-tree", false,
-    [&] (std::string const &opt) -> bool {
-      std::cout << "\t--Using simple tree." << std::endl;
-      useSimpleTree = true;
-      return true;
-    }, false,
-    [&](){useSimpleTree = false;}, "Only output StdHep.");
 
   CLIArgs::AddOpt("-G", "--GeV-mode", false,
     [&] (std::string const &opt) -> bool {
@@ -423,11 +518,38 @@ void SetOpts(){
       return true;
     }, false,
     [&](){EmulateNuWro = false;}, "Emulate nuwro2rootracker more closely.");
+
+  CLIArgs::AddOpt("-S", "--Skip-non-FS", false,
+    [&] (std::string const &opt) -> bool {
+      std::cout << "\t--Not saving non-FS particles." << std::endl;
+      SkipNonFS = true;
+      return true;
+    }, false,
+    [&](){SkipNonFS = false;}, "Don't save non-FS particles.");
+
+  CLIArgs::AddOpt("-I", "--Ignore-NEUT-Modes", true,
+    [&] (std::string const &opt) -> bool {
+      ModeIgnores =
+        PGUtils::StringVToIntV(PGUtils::SplitStringByDelim(opt,","));
+
+      if(ModeIgnores.size()){
+        std::cout << "\t--Ignoring interactions with NEUT modes:  "
+          << std::flush;
+        for(auto const &mi : ModeIgnores){
+          std::cout << mi << ", " << std::flush;
+        }
+        std::cout << std::endl;
+        return true;
+      }
+      return false;
+    }, false,
+    [](){},
+    "<int,int,...> NEUT modes to save output from.");
 }
 }
 
 int main(int argc, char const * argv[]){
-  SetOpts();
+  NeutToRooTrackerOpts::SetOpts();
 
   CLIArgs::AddArguments(argc,argv);
   if(!CLIArgs::HandleArgs()){
@@ -436,7 +558,7 @@ int main(int argc, char const * argv[]){
   }
 
   int rtncode = 0;
-  if((rtncode = NeutToRooTracker(inpfdescript.c_str()))){
+  if((rtncode = NeutToRooTracker(NeutToRooTrackerOpts::InpFDescript.c_str()))){
     CLIArgs::SayRunLike();
   }
   return rtncode;

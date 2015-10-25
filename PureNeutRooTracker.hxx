@@ -17,89 +17,104 @@ const int kNEmaxvc = 100;
 const int kNEmaxvert = 100;
 const int kNEmaxvertp = 300;
 
+///Most simple NEUT rooTracker like output format
 class NRooTrackerVtxB : public TObject {
 public:
   NRooTrackerVtxB();
+  ///Resets all data members to default values.
   virtual void Reset();
   virtual ~NRooTrackerVtxB();
-  virtual void AddBranches(TTree* &tree, bool SimpleTree=false,
+  ///Adds data member branches andly sets branch addresses on passed
+  ///tree.
+  ///
+  ///Additionally can be told to add branches for IsBound and StruckNucleonPDG.
+  virtual void AddBranches(TTree* &tree,
     bool SaveIsBound=false, bool SaveStruckNucleonPDG=false);
-  ///generator-specific string with 'event code'
+  ///Generator-specific string with 'event code'.
   TObjString* EvtCode;
-  ///event num.
+  ///Event num.
   Int_t EvtNum;
-  ///number of particles in particle array
+  ///Number of particles in the StdHep particle array.
   Int_t StdHepN;
   //******************* stdhep-like particle array
 
-  /// pdg codes (& generator specific codes for pseudoparticles)
+  ///StdHep particle array of Pdg codes (& generator specific codes for
+  ///pseudoparticles)
   Int_t* StdHepPdg; //[StdHepN]
-  /// generator-specific status code
+  ///StdHep particle array of generator-specific status code
+  ///
+  ///Employed here:
+  ///-0: Initial State particle
+  ///-1: Final State particle
+  ///\note: Any others states are being bled in by NEUT not outputting according
+  ///to it's documentation. It is safe to say that these are not
+  ///'good particles'.
+  ///
+  ///You can turn off writing of bad particles with the CLI opt '-S'.
   Int_t* StdHepStatus; //[StdHepN]
-  /// 4-p (px,py,pz,E) of particle in LAB frame (GeV) CORRECT
+  ///StdHep particle array of 4-p (px,py,pz,E) of particle in LAB frame (GeV)
   Double_t StdHepP4 [kNStdHepNPmax][4];
 
-  ///IBound
+  ///Whether this interaction was on a bound, or unbound (H), nucleon.
   Int_t IsBound;
 
-  ///IBound
+  ///The PDG of the struck nucleon.
+  ///
+  ///\note This is only useful if running in NuWro rooTracker emulation mode.
+  ///otherwise this is just a duplciate of StdHepPdg[1].
   Int_t StruckNucleonPDG;
 
   ClassDef(NRooTrackerVtxB, 1);
 };
 
+///A subclass of NRooTrackerVtxB that adds additional output information.
+///
+///\warning None of this information is currently filled.
+///it is left as an excercise to the user to add this in.
 class NRooTrackerVtx : public NRooTrackerVtxB {
 
 ///\brief Maximum possible number of saved NFNucleonVertices
-///\detailed This is set to mirror the equivalent parameter in the NEUT
+///
+/// This is set to mirror the equivalent parameter in the NEUT
 /// FSI hist header file nucleonfsihist.h
 static const int kNFMaxNucleonVert = 200;
 ///\brief Maximum possible number of saved NFNucleonSteps
-///\detailed This is set to mirror the equivalent parameter in the NEUT
+///
+/// This is set to mirror the equivalent parameter in the NEUT
 /// FSI hist header file nucleonfsihist.h
 static const int kNFMaxNucleonSteps = 2000;
 
 public:
   NRooTrackerVtx();
+  ///Resets all data members to default values.
   void Reset();
   ~NRooTrackerVtx();
-  void AddBranches(TTree* &tree, bool SimpleTree=false,
+  ///Adds data member branches andly sets branch addresses on passed
+  ///tree.
+  ///
+  ///Additionally can be told to add branches for IsBound and StruckNucleonPDG.
+  void AddBranches(TTree* &tree,
     bool SaveIsBound=false, bool SaveStruckNucleonPDG=false);
 
   //****************** Define the output rootracker tree branches
 
-  ///generator-specific string with 'event code'
-  // TObjString* EvtCode;
-  ///event num.
-  // Int_t EvtNum;
-  ///cross section for selected event (1E-38 cm2) CORRECT
+  ///cross section for selected event (1E-38 cm2)
   Double_t EvtXSec;
-  ///cross section for selected event kinematics (1E-38 cm2 /{K^n}) CORRECT
+  ///cross section for selected event kinematics (1E-38 cm2 /{K^n})
   Double_t EvtDXSec;
-  ///weight for that event CORRECT
+  ///weight for that event
   Double_t EvtWght;
   ///probability for that event (given cross section, path lengths, etc)
   Double_t EvtProb;
-  ///event vertex position in detector coord syst (SI) CORRECT
+  ///event vertex position in detector coord syst (SI)
   Double_t EvtVtx[4];
-  ///number of particles in particle array
-  // Int_t StdHepN;
 
   //******************* stdhep-like particle array
 
-  /// pdg codes (& generator specific codes for pseudoparticles)
-  // Int_t* StdHepPdg; //[StdHepN]
-  /// generator-specific status code
-  // Int_t* StdHepStatus; //[StdHepN]
-  /// 4-x (x, y, z, t) of particle in hit nucleus frame (fm) CORRECT
+  /// 4-x (x, y, z, t) of particle in hit nucleus frame (fm)
   Double_t StdHepX4 [kNStdHepNPmax][4];
-  /// 4-p (px,py,pz,E) of particle in LAB frame (GeV) CORRECT
-  // Double_t StdHepP4 [kNStdHepNPmax][4];
-  /// polarization vector CORRECT
+  /// polarization vector
   Double_t StdHepPolz [kNStdHepNPmax][3];
-
-  ///IBound
-  // Int_t IsBound;
 
   /// first daughter
   Int_t* StdHepFd; //[StdHepN]
@@ -115,13 +130,13 @@ public:
   Int_t NEnvc;
   /// PDG particle code
   Int_t* NEipvc; //[NEnvc]
-  /// 3-momentum (MeV/c) CORRECT
+  /// 3-momentum (MeV/c)
   Float_t NEpvc[kNEmaxvc][3];
   /// Index of parent (Fortran convention: starting at 1)
   Int_t* NEiorgvc; //[NEnvc]
 
   ///\brief Flag of final state
-  ///\detailed Values:
+  ///\details Values:
   /// * 0 : DETERMINED LATER PROCEDURE
   /// * 1 : DECAY TO OTHER PARTICLE
   /// * 2 : ESCAPE FROM DETECTOR
@@ -141,16 +156,16 @@ public:
   //********************** reweighting routines
 
   ///\brief Cross section calculation variables (currently used for coherent
-  ///interactions) CORRECT
+  ///interactions)
   Float_t NEcrsx;
   ///\brief Cross section calculation variables (currently used for coherent
-  ///interactions) CORRECT
+  ///interactions)
   Float_t NEcrsy;
   ///\brief Cross section calculation variables (currently used for coherent
-  ///interactions) CORRECT
+  ///interactions)
   Float_t NEcrsz;
   ///\brief Cross section calculation variables (currently used for coherent
-  ///interactions) CORRECT
+  ///interactions)
   Float_t NEcrsphi;
 
 
@@ -158,11 +173,11 @@ public:
 
   /// Number of vertices (including production and exit points)
   Int_t NEnvert;
-  /// Position of vertex within nucleus (fm) CORRECT
+  /// Position of vertex within nucleus (fm)
   Float_t NEposvert[kNEmaxvert][3];
 
   ///\brief Interaction type
-  ///\detailed Values:
+  ///\details Values:
   /// * (*10 FOR HI-NRG interaction, >~400 MeV/c)
   /// * -1 : ESCAPE
   /// * 0 : INITIAL (or unmatched parent vertex if I>1)
@@ -175,13 +190,13 @@ public:
 
   /// Number of intermediate particles (including initial and final)
   Int_t NEnvcvert;
-  /// Direction of particle CORRECT
+  /// Direction of particle
   Float_t NEdirvert[kNEmaxvertp][3];
 
 
-  /// Absolute momentum in the lab frame (MeV/c) CORRECT
+  /// Absolute momentum in the lab frame (MeV/c)
   Float_t* NEabspvert; //[NEnvcvert]
-  /// Absolute momentum in the nucleon rest frame (MeV/c) CORRECT
+  /// Absolute momentum in the nucleon rest frame (MeV/c)
   Float_t* NEabstpvert; //[NEnvcvert]
   /// PDG particle code
   Int_t*  NEipvert; //[NEnvcvert]
@@ -193,7 +208,7 @@ public:
   //**************** NEUT FSIHIST nucleon interaction history
 
   ///\brief Number of "vertices"
-  ///\detailed Remarks:
+  ///\details Remarks:
   /// *  - a "vertex" is actually better described as a start, end or
   /// *    scattering point of a track
   /// *  - at each scattering point, the first nucleon will be followed in
@@ -211,7 +226,7 @@ public:
   /// *    each other.
   Int_t NFnvert;
   ///\brief 4-digit flag for interaction type at i-th vertex, in the form "BNTP":
-  ///\detailed Values:
+  ///\details Values:
   /// * N: charge nucleon propagated through nucleus (0 = neutron, 1 = proton)
   /// * T: charge "target" nucleon the interaction is taking place on
   /// * P: scattering process:
@@ -252,6 +267,7 @@ public:
   ///  NFecms2 > 0: proton,  NFecms2 < 0: neutron (same as "T" in NFiflag)
   Float_t* NFecms2; //[NFnstep]
 
+  ///The name of the generator, in this case always NEUT.
   TString* GeneratorName;
 
   ClassDef(NRooTrackerVtx, 1);

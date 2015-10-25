@@ -52,6 +52,14 @@ PureNeutRooTracker.so: PureNeutRooTracker.cxx PureNeutRooTracker.hxx PureNeutRoo
 	$(RCINT) -f PureNeutRooTracker_dict.cxx -c -p PureNeutRooTracker.hxx PureNeutRooTracker_linkdef.h
 	$(CXX) $(CXXFLAGS) -shared -I$(UTILSLOC) -I$(NEUTCLASSDIR) PureNeutRooTracker.cxx PureNeutRooTracker_dict.cxx -o $@
 
+docs: $(TARGETSRC) $(TOBJS) $(TOBJH) dox/NeutToRooTracker.dox.cfg
+	rm -f *dict.*
+	cd dox; doxygen NeutToRooTracker.dox.cfg;
+
+latex_docs: docs
+	cd dox/latex; $(MAKE); $(MAKE);
+	cp dox/latex/refman.pdf ./NeutToRooTracker_dox.pdf
+
 clean:
 	rm -rf $(TOBJDICTS)\
         $(TDICTHEADERS)\
@@ -61,4 +69,5 @@ clean:
 	      $(NEUTDEPSO)\
         $(BDIR) \
         $(LDIR)
+	rm -rf dox/html dox/latex NeutToRooTracker_dox.pdf
 

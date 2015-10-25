@@ -140,7 +140,6 @@ void NRooTrackerVtx::Reset(){
 }
 
 void NRooTrackerVtx::AddBranches(TTree* &tree,
-  bool SimpleTree,
   bool SaveIsBound,
   bool SaveStruckNucleonPDG){
 
@@ -174,8 +173,6 @@ void NRooTrackerVtx::AddBranches(TTree* &tree,
 
   if(SaveIsBound){ tree->Branch("IsBound", &IsBound, "IsBound/I"); }
   if(SaveStruckNucleonPDG){ tree->Branch("StruckNucleonPDG", &StruckNucleonPDG, "StruckNucleonPDG/I"); }
-
-  if(SimpleTree){ return; }
 
   tree->Branch("NEnvc", &NEnvc,"NEnvc/I");
   tree->Branch("NEipvc", NEipvc,"NEipvc[NEnvc]/I");
@@ -245,7 +242,6 @@ void NRooTrackerVtxB::Reset(){
 }
 
 void NRooTrackerVtxB::AddBranches(TTree* &tree,
-  bool SimpleTree,
   bool SaveIsBound,
   bool SaveStruckNucleonPDG){
 
