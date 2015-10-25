@@ -17,7 +17,15 @@ fi
 if [ ! "${NEUTCLASSLOC}" ]; then
   echo "[WARN]: NEUTCLASSLOC has not been set. You will not be able to build \
 neut2rootracker."
+  echo "[INFO]: Please \"export NEUTCLASSLOC=/path/to/root/src/neutclass\". This NEUT instance must be built, the libraries must exist."
+  unset SETUPDIR
+  return 1
 fi
+
+if [ ! -e ${NEUTCLASSLOC}/neutvect.so ]; then
+  echo "Could not find neutvect.so in \${NEUTCLASSLOC}/, Has NEUT been built?"
+  return 2
+fi 
 
 if ! [[ ":$PATH:" == *":${SETUPDIR}/bin:"* ]]; then
   export PATH=${SETUPDIR}/neut2rootracker/bin:$PATH
