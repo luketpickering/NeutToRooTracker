@@ -19,7 +19,8 @@ NEUTCLASSDIR := $(NEUTCLASSLOC)
 NEUTDEPSO := neutvect.so neutpart.so neutfsipart.so neutfsivert.so neutvtx.so
 
 UTILSLOC=../utils
-UTILSDEPSO=libPureGenUtils.so
+LIBUTILS=libPureGenUtils.so
+UTILSDEPSO:=$(UTILSLOC)/lib/$(LIBUTILS)
 
 ROOTCFLAGS := `$(RC) --cflags`
 ROOTLDFLAGS := `$(RC) --libs --glibs`
@@ -32,18 +33,20 @@ LDFLAGS := $(ROOTLDFLAGS) -Wl,-rpath=.
 all: $(TARGET)
 	mkdir -p $(BDIR) $(LDIR)
 	mv $(TARGET) $(BDIR)/
-	mv $(UTILSDEPSO) $(NEUTDEPSO) $(TOBJSO) $(LDIR)/
+	mv $(LIBUTILS) $(NEUTDEPSO) $(TOBJSO) $(LDIR)/
 	@echo ""
 	@echo "*********************************************************************"
 	@echo "Success. Built NeutToRooTracker."
 	@echo "*********************************************************************"
 
-$(UTILSDEPSO):
-	ln -s `readlink -f $(UTILSLOC)/lib/$@` $@
+$(LIBUTILS):
+	cd $(UTILSLOC); $(MAKE)
+	ln -s `readlink -f $(UTILSDEPSO)` $@
+
 $(NEUTDEPSO):
 	ln -s $(NEUTCLASSDIR)/$@ $@
 
-$(TARGET): $(TARGETSRC) $(TOBJSO) $(NEUTDEPSO) $(UTILSDEPSO)
+$(TARGET): $(TARGETSRC) $(TOBJSO) $(NEUTDEPSO) $(LIBUTILS)
 	$(CXX) -o $@ -I$(NEUTCLASSDIR) $(CXXFLAGS) $(LDFLAGS) -I$(UTILSLOC) $^
 
 PureNeutRooTracker_dict.cxx: PureNeutRooTracker.hxx
