@@ -18,7 +18,7 @@ TARGETSRC := $(TARGET:.exe=.cxx)
 NEUTCLASSDIR := $(NEUTCLASSLOC)
 NEUTDEPSO := neutvect.so neutpart.so neutfsipart.so neutfsivert.so neutvtx.so
 
-UTILSLOC=../../../utils
+UTILSLOC=../utils
 UTILSDEPSO=libPureGenUtils.so
 
 ROOTCFLAGS := `$(RC) --cflags`
