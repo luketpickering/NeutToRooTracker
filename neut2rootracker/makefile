@@ -16,6 +16,7 @@ TARGET := NeutToRooTracker.exe
 TARGETSRC := $(TARGET:.exe=.cxx)
 
 NEUTCLASSDIR := $(NEUTCLASSLOC)
+NEUTCHECKSO := $(NEUTCLASSDIR)/neutvect.so
 NEUTDEPSO := neutvect.so neutpart.so neutfsipart.so neutfsivert.so neutvtx.so
 
 UTILSLOC=../utils
@@ -43,16 +44,23 @@ $(LIBUTILS):
 	cd $(UTILSLOC); $(MAKE)
 	ln -s `readlink -f $(UTILSDEPSO)` $@
 
-$(NEUTDEPSO):
+$(NEUTCHECKSO):
+	@echo "env NEUTCLASSLOC is not set or NEUT has not been built as the neutclass libraries cannot be found."
+	`exit 1`
+
+$(NEUTDEPSO): $(NEUTCHECKSO)
 	ln -s $(NEUTCLASSDIR)/$@ $@
+
+ROOTCHECK:
+	root -l -b -q
 
 $(TARGET): $(TARGETSRC) $(TOBJSO) $(NEUTDEPSO) $(LIBUTILS)
 	$(CXX) -o $@ -I$(NEUTCLASSDIR) $(CXXFLAGS) $(LDFLAGS) -I$(UTILSLOC) $^
 
-PureNeutRooTracker_dict.cxx: PureNeutRooTracker.hxx
-
-PureNeutRooTracker.so: PureNeutRooTracker.cxx PureNeutRooTracker.hxx PureNeutRooTracker_linkdef.h
+PureNeutRooTracker_dict.cxx: PureNeutRooTracker.hxx ROOTCHECK
 	$(RCINT) -f PureNeutRooTracker_dict.cxx -c -p PureNeutRooTracker.hxx PureNeutRooTracker_linkdef.h
+
+PureNeutRooTracker.so: PureNeutRooTracker.cxx PureNeutRooTracker.hxx PureNeutRooTracker_linkdef.h PureNeutRooTracker_dict.cxx ROOTCHECK
 	$(CXX) $(CXXFLAGS) -shared -I$(UTILSLOC) -I$(NEUTCLASSDIR) PureNeutRooTracker.cxx PureNeutRooTracker_dict.cxx -o $@
 
 docs: $(TARGETSRC) $(TOBJS) $(TOBJH) dox/NeutToRooTracker.dox.cfg
@@ -66,11 +74,12 @@ latex_docs: docs
 clean:
 	rm -rf $(TOBJDICTS)\
         $(TDICTHEADERS)\
-        $(UTILSDEPSO)\
+        $(LIBUTILS)\
         $(TOBJSO)\
-	      $(TARGET)\
-	      $(NEUTDEPSO)\
+	$(TARGET)\
+	$(NEUTDEPSO)\
         $(BDIR) \
         $(LDIR)
+	cd ../utils; $(MAKE) clean
 	rm -rf dox/html dox/latex NeutToRooTracker_dox.pdf
 
