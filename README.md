@@ -18,6 +18,7 @@ Building:
 Dependencies:
 -------------
  - [ROOT](http://root.cern.ch/): https://github.com/root-mirror/root
+ - [NEUT](http://dx.doi.org/10.1016/S0920-5632(02)01759-0): Not freely available. Sorry.
 
 To Build:
 ---------
