@@ -28,6 +28,7 @@ Fetch subprojects:
 
 Executable:
 
+    $ export NEUTCLASSLOC=</path/to/neut>/src/neutclass
     $ source /<path/to/root>/bin/thisroot.sh
     $ source setup.sh
     $ cd neut2rootracker;
