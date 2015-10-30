@@ -3,38 +3,39 @@ RCINT := rootcint
 RC := root-config
 
 BDIR :=bin
-LDIR :=lib
 
-TOBJS := PureNeutRooTracker.cxx
-TOBJH := $(TOBJS:.cxx=.hxx)
-TOBJDICTS := $(TOBJS:.cxx=_dict.cxx)
-TDICTHEADERS := $(TOBJS:.cxx=_dict.h)
-TOBJLINKDEFS := $(TOBJS:.cxx=_linkdef.h)
-TOBJSO := $(TOBJS:.cxx=.so)
+TOBJSRC := PureNeutRooTracker.cxx
+TOBJH := $(TOBJSRC:.cxx=.hxx)
+TOBJDICTS := $(TOBJSRC:.cxx=_dict.cxx)
+TDICTHEADERS := $(TOBJSRC:.cxx=_dict.h)
+TOBJLINKDEFS := $(TOBJSRC:.cxx=_linkdef.h)
+TOBJO := $(TOBJSRC:.cxx=.o)
+TOBJO += $(TOBJDICTS:.cxx=.o)
 
 TARGET := NeutToRooTracker.exe
 TARGETSRC := $(TARGET:.exe=.cxx)
 
-NEUTCLASSDIR := $(NEUTCLASSLOC)
-NEUTCHECKSO := $(NEUTCLASSDIR)/neutvect.so
-NEUTDEPSO := neutvect.so neutpart.so neutfsipart.so neutfsivert.so neutvtx.so
+NEUTCHECKO := $(NEUTCLASSLOC)/neutvect.o
+NEUTCLASSO := neutvect.o neutpart.o neutfsipart.o neutfsivert.o neutvtx.o
+NEUTDICTO := $(NEUTCLASSO:.o=Dict.o)
+NEUTDEPO := $(addprefix $(NEUTCLASSLOC)/,$(NEUTCLASSO))
+NEUTDEPO += $(addprefix $(NEUTCLASSLOC)/,$(NEUTDICTO))
 
-UTILSLOC=../utils
-LIBUTILS=libPureGenUtils.so
-UTILSDEPSO:=$(UTILSLOC)/lib/$(LIBUTILS)
+UTILSLOC := ../utils
+LIBUTILS := $(UTILSLOC)/lib/libPureGenUtils.a
+LIBUTILSLD := -L$(UTILSLOC)/lib -lPureGenUtils
 
 ROOTCFLAGS := `$(RC) --cflags`
 ROOTLDFLAGS := `$(RC) --libs --glibs`
 
 CXXFLAGS := -fPIC $(ROOTCFLAGS) -g -std=c++11 -Wall
-LDFLAGS := $(ROOTLDFLAGS) -Wl,-rpath=.
+LDFLAGS := $(ROOTLDFLAGS) $(LIBUTILSLD) -Wl,-rpath=. -Wl,--start-group
 
 .PHONY: all clean
 
 all: $(TARGET)
-	mkdir -p $(BDIR) $(LDIR)
+	mkdir -p $(BDIR)
 	mv $(TARGET) $(BDIR)/
-	mv $(LIBUTILS) $(NEUTDEPSO) $(TOBJSO) $(LDIR)/
 	@echo ""
 	@echo "*********************************************************************"
 	@echo "Success. Built NeutToRooTracker."
@@ -42,26 +43,23 @@ all: $(TARGET)
 
 $(LIBUTILS):
 	cd $(UTILSLOC); $(MAKE)
-	ln -s `readlink -f $(UTILSDEPSO)` $@
 
-$(NEUTCHECKSO):
+$(NEUTCHECKO):
 	@echo "env NEUTCLASSLOC is not set or NEUT has not been built as the neutclass libraries cannot be found."
 	`exit 1`
-
-$(NEUTDEPSO): $(NEUTCHECKSO)
-	ln -s $(NEUTCLASSDIR)/$@ $@
 
 ROOTCHECK:
 	root -l -b -q
 
-$(TARGET): $(TARGETSRC) $(TOBJSO) $(NEUTDEPSO) $(LIBUTILS)
-	$(CXX) -o $@ -I$(NEUTCLASSDIR) $(CXXFLAGS) $(LDFLAGS) -I$(UTILSLOC) $^
+$(TARGET): $(TARGETSRC) $(TOBJO) $(NEUTDEPO) $(NEUTCHECKO) $(LIBUTILS)
+	$(CXX) -o $@ $< $(CXXFLAGS) -I$(NEUTCLASSLOC) -I$(UTILSLOC) $(TOBJO) $(NEUTDEPO) $(LDFLAGS)
 
-PureNeutRooTracker_dict.cxx: PureNeutRooTracker.hxx ROOTCHECK
+PureNeutRooTracker_dict.o: PureNeutRooTracker.hxx ROOTCHECK
 	$(RCINT) -f PureNeutRooTracker_dict.cxx -c -p PureNeutRooTracker.hxx PureNeutRooTracker_linkdef.h
+	$(CXX) $(CXXFLAGS) -c PureNeutRooTracker_dict.cxx -o $@ -I$(UTILSLOC) -I$(NEUTCLASSLOC)
 
-PureNeutRooTracker.so: PureNeutRooTracker.cxx PureNeutRooTracker.hxx PureNeutRooTracker_linkdef.h PureNeutRooTracker_dict.cxx ROOTCHECK
-	$(CXX) $(CXXFLAGS) -shared -I$(UTILSLOC) -I$(NEUTCLASSDIR) PureNeutRooTracker.cxx PureNeutRooTracker_dict.cxx -o $@
+PureNeutRooTracker.o: PureNeutRooTracker.cxx PureNeutRooTracker.hxx PureNeutRooTracker_linkdef.h PureNeutRooTracker_dict.cxx ROOTCHECK
+	$(CXX) $(CXXFLAGS) -c PureNeutRooTracker.cxx -o $@ -I$(UTILSLOC) -I$(NEUTCLASSLOC)
 
 docs: $(TARGETSRC) $(TOBJS) $(TOBJH) dox/NeutToRooTracker.dox.cfg
 	rm -f *dict.*
@@ -72,14 +70,13 @@ latex_docs: docs
 	cp dox/latex/refman.pdf ./NeutToRooTracker_dox.pdf
 
 clean:
-	rm -rf $(TOBJDICTS)\
+	rm -f $(TOBJDICTS)\
         $(TDICTHEADERS)\
-        $(LIBUTILS)\
-        $(TOBJSO)\
-	$(TARGET)\
-	$(NEUTDEPSO)\
-        $(BDIR) \
-        $(LDIR)
+				$(TARGET)\
+				$(TOBJO)
+
+distclean: clean
+	rm -rf $(BDIR)
 	cd ../utils; $(MAKE) clean
 	rm -rf dox/html dox/latex NeutToRooTracker_dox.pdf
 
