@@ -58,7 +58,7 @@ PureNeutRooTracker_dict.o: PureNeutRooTracker.hxx ROOTCHECK
 	$(RCINT) -f PureNeutRooTracker_dict.cxx -c -p PureNeutRooTracker.hxx PureNeutRooTracker_linkdef.h
 	$(CXX) $(CXXFLAGS) -c PureNeutRooTracker_dict.cxx -o $@ -I$(UTILSLOC) -I$(NEUTCLASSLOC)
 
-PureNeutRooTracker.o: PureNeutRooTracker.cxx PureNeutRooTracker.hxx PureNeutRooTracker_linkdef.h PureNeutRooTracker_dict.cxx ROOTCHECK
+PureNeutRooTracker.o: PureNeutRooTracker.cxx PureNeutRooTracker.hxx
 	$(CXX) $(CXXFLAGS) -c PureNeutRooTracker.cxx -o $@ -I$(UTILSLOC) -I$(NEUTCLASSLOC)
 
 docs: $(TARGETSRC) $(TOBJS) $(TOBJH) dox/NeutToRooTracker.dox.cfg
