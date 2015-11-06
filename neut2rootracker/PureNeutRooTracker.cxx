@@ -238,7 +238,7 @@ void NRooTrackerVtxB::Reset(){
   PGUtils::ClearArray2D(StdHepP4);
 
   IsBound = 0;
-  SaveStruckNucleonPDG = 0;
+  StruckNucleonPDG = 0;
 
 }
 
