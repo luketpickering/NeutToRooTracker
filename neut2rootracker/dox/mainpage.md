@@ -143,8 +143,8 @@ Command line options all have a short form and a long form and either take 1 or
 The basic `StdHep` portion of the `NEUT` flavor RooTracker format is described
 here:
 
-  * `Int_t EvtCode //Interaction Mode --- CCQE == 1
-  * `Int_t StdHepN //Number of particles stored in other StdHep Arrays
+  * `Int_t EvtCode` //Interaction Mode --- CCQE == 1
+  * `Int_t StdHepN` //Number of particles stored in other StdHep Arrays
   * `Int_t StdHepStatus[$i<$StdHepN]` //Status code of particle i --- 0 ==
 incoming, 11 == incoming nucleus (if not using `-E`), 1 == good final state,
 anything else == intermediate or unseeable particle.
@@ -178,5 +178,3 @@ documentation of NRooTrackerVtx.
 
  * If not emulating NuWro the struck nucleon entry will have
   `StdHepStatus==11` similar to GENIE.
-
-
