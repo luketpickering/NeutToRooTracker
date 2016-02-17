@@ -10,28 +10,20 @@ fi
 
 #Looks a bit silly but allows you to either export it manually for the build
 #or specify it in here during deployment
-if [ ! "${NEUTCLASSLOC}" ]; then
-  NEUTCLASSLOC=""
+if [ ! "${NEUT_ROOT}" ]; then
+  NEUT_ROOT=""
 fi
 
-if [ ! "${NEUTCLASSLOC}" ]; then
-  echo "[WARN]: NEUTCLASSLOC has not been set. You will not be able to build \
+if [ ! "${NEUT_ROOT}" ]; then
+  echo "[WARN]: NEUT_ROOT has not been set. You will not be able to build \
 neut2rootracker."
-  echo "[INFO]: Please \"export NEUTCLASSLOC=/path/to/root/src/neutclass\". This NEUT instance must be built, the libraries must exist."
+  echo "[INFO]: Please \"$ export NEUT_ROOT=/path/to/neut\". This NEUT instance must be built, the libraries must exist."
   unset SETUPDIR
   return 1
 fi
 
-if [ ! -e ${NEUTCLASSLOC}/neutvect.so ]; then
-  echo "Could not find neutvect.so in \${NEUTCLASSLOC}/, Has NEUT been built?"
-  return 2
-fi 
-
 if ! [[ ":$PATH:" == *":${SETUPDIR}/bin:"* ]]; then
   export PATH=${SETUPDIR}/neut2rootracker/bin:$PATH
-fi
-if ! [[ ":$LD_LIBRARY_PATH:" == *":${SETUPDIR}/lib:"* ]]; then
-  export LD_LIBRARY_PATH=${SETUPDIR}/neut2rootracker/lib:$LD_LIBRARY_PATH
 fi
 
 unset SETUPDIR

@@ -1,3 +1,5 @@
+#ifndef PURENEUTROOTRACKER_HXX_SEEN
+#define PURENEUTROOTRACKER_HXX_SEEN
 #include "TObject.h"
 #include "TString.h"
 #include "TObjString.h"
@@ -17,7 +19,9 @@ const int kNEmaxvc = 100;
 const int kNEmaxvert = 100;
 const int kNEmaxvertp = 300;
 
-///Most simple NEUT rooTracker like output format
+extern char const * NEUTStatusCodes[];
+
+///Most simple NEUT rooTracker-like output format
 class NRooTrackerVtxB : public TObject {
 public:
   NRooTrackerVtxB();
@@ -44,11 +48,23 @@ public:
   ///StdHep particle array of generator-specific status code
   ///
   ///Employed here:
-  ///-0: Initial State particle
-  ///-1: Final State particle
+  /// * 0: Initial State particle
+  /// * 1: Final State particle
   ///\note: Any others states are being bled in by NEUT not outputting according
   ///to it's documentation. It is safe to say that these are not
   ///'good particles'.
+  ///
+  ///\note:
+  ///For completeness the relevant NEUT codes are given here: from
+  ///skmcsvc/vcwork.h
+  /// * 1 : DECAY TO OTHER PARTICLE
+  /// * 3 : ABSORPTION
+  /// * 4 : CHARGE EXCHANGE
+  /// * 5 : STOP AND NOT CONSIDER IN M.C.
+  /// * 6 : E.M. SHOWER
+  /// * 7 : HADRON PRODUCTION
+  /// * 8 : QUASI-ELASTIC SCATTER
+  /// * 9 : FORWARD (ELASTIC-LIKE) SCATTER
   ///
   ///You can turn off writing of bad particles with the CLI opt '-S'.
   Int_t* StdHepStatus; //[StdHepN]
@@ -60,7 +76,7 @@ public:
 
   ///The PDG of the struck nucleon.
   ///
-  ///\note This is only useful if running in NuWro rooTracker emulation mode.
+  ///\note This is only useful if running in NuWro rooTracker emulation mode
   ///otherwise this is just a duplciate of StdHepPdg[1].
   Int_t StruckNucleonPDG;
 
@@ -73,6 +89,7 @@ public:
 ///it is left as an excercise to the user to add this in.
 class NRooTrackerVtx : public NRooTrackerVtxB {
 
+#ifdef HAVE_NUCLEON_FSI_TRACKING
 ///\brief Maximum possible number of saved NFNucleonVertices
 ///
 /// This is set to mirror the equivalent parameter in the NEUT
@@ -83,6 +100,7 @@ static const int kNFMaxNucleonVert = 200;
 /// This is set to mirror the equivalent parameter in the NEUT
 /// FSI hist header file nucleonfsihist.h
 static const int kNFMaxNucleonSteps = 2000;
+#endif
 
 public:
   NRooTrackerVtx();
@@ -98,31 +116,41 @@ public:
 
   //****************** Define the output rootracker tree branches
 
-  ///cross section for selected event (1E-38 cm2)
+  ///The cross section for the event (1E-38 cm2)
   Double_t EvtXSec;
-  ///cross section for selected event kinematics (1E-38 cm2 /{K^n})
+  ///The cross section for the event kinematics (1E-38 cm2 /{K^n})
   Double_t EvtDXSec;
-  ///weight for that event
+  ///The event Weight (1E-38)
+  ///This is calculated from `EvtWght = event_rate->Integral()/flux->Integral()`
+  ///on a file by file basis if multiple input files are passed in.
+  ///Any files that do not contain the neccessary histograms will recieve a
+  ///EvtWght of 0
   Double_t EvtWght;
-  ///probability for that event (given cross section, path lengths, etc)
+  ///\brief Used in conjunction with EvtWght to correctly normalise final state
+  ///histograms
+  ///\details This is modified for each new input file read by the TChain so can
+  ///be used as a weight for a draw command and weights from different runs
+  ///should be correct.
+  Double_t NEntriesInFile;
+  ///Probability for the event (given cross section, path lengths, etc)
   Double_t EvtProb;
-  ///event vertex position in detector coord syst (SI)
+  ///Event vertex position in detector coord syst (SI)
   Double_t EvtVtx[4];
 
   //******************* stdhep-like particle array
 
-  /// 4-x (x, y, z, t) of particle in hit nucleus frame (fm)
+  ///[UNUSED IN NEUT] 4-x (x, y, z, t) of particle in hit nucleus frame (fm)
   Double_t StdHepX4 [kNStdHepNPmax][4];
-  /// polarization vector
+  ///[UNUSED IN NEUT] Polarization vector
   Double_t StdHepPolz [kNStdHepNPmax][3];
 
-  /// first daughter
+  ///[UNUSED IN NEUT] First daughter
   Int_t* StdHepFd; //[StdHepN]
-  /// last daughter
+  ///[UNUSED IN NEUT] Last daughter
   Int_t* StdHepLd; //[StdHepN]
-  /// first mother
+  ///[UNUSED IN NEUT] First mother
   Int_t* StdHepFm; //[StdHepN]
-  /// last mother
+  ///[UNUSED IN NEUT] Last mother
   Int_t* StdHepLm; //[StdHepN]
 
   /// NEUT native VCWORK information
@@ -205,6 +233,7 @@ public:
   /// Index of final vertex (pointing to nvert array above)
   Int_t*  NEivertf; //[NEnvcvert]
 
+#ifdef HAVE_NUCLEON_FSI_TRACKING
   //**************** NEUT FSIHIST nucleon interaction history
 
   ///\brief Number of "vertices"
@@ -237,6 +266,7 @@ public:
   /// *    P=4: stop tracking of nucleon (i.e. leaves nucleus)
   /// * B: Pauli blocking flag (0 = not blocked, 1 = interaction was Pauli
   /// *    blocked and actually did not take place)
+  ///
   /// Examples:
   /// *  - 103 means double pion production when a proton scattered on a neutron
   /// *  - 1011 means elastic scattering of a neutron on a proton did not take
@@ -266,9 +296,12 @@ public:
   /// The sign of this value indicates the charge of the target nucleon:
   ///  NFecms2 > 0: proton,  NFecms2 < 0: neutron (same as "T" in NFiflag)
   Float_t* NFecms2; //[NFnstep]
-
+  //Probability at the k-th step.
+  Float_t* NFProb; //[NFnstep]
+#endif
   ///The name of the generator, in this case always NEUT.
   TString* GeneratorName;
 
   ClassDef(NRooTrackerVtx, 1);
 };
+#endif

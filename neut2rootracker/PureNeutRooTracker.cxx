@@ -1,8 +1,21 @@
 #include <sstream>
 
-#include "PureGenUtils.hxx"
+#include "LUtils/Utils.hxx"
 
 #include "PureNeutRooTracker.hxx"
+
+char const * NEUTStatusCodes[] = {
+  "DETERMINED LATER PROCEDURE",
+  "DECAY TO OTHER PARTICLE",
+  "ESCAPE FROM DETECTOR",
+  "ABSORPTION",
+  "CHARGE EXCHANGE",
+  "STOP AND NOT CONSIDER IN M.C.",
+  "E.M. SHOWER",
+  "HADRON PRODUCTION",
+  "QUASI-ELASTIC SCATTER",
+  "FORWARD (ELASTIC-LIKE) SCATTER"
+};
 
 NRooTrackerVtx::NRooTrackerVtx(){
   EvtCode = new TObjString("");
@@ -25,7 +38,7 @@ NRooTrackerVtx::NRooTrackerVtx(){
   NEipvert = new Int_t[kNEmaxvertp];
   NEiverti = new Int_t[kNEmaxvertp];
   NEivertf = new Int_t[kNEmaxvertp];
-
+#ifdef HAVE_NUCLEON_FSI_TRACKING
   NFiflag = new Int_t[kNFMaxNucleonVert];
   NFx = new Float_t[kNFMaxNucleonVert];
   NFy = new Float_t[kNFMaxNucleonVert];
@@ -37,6 +50,8 @@ NRooTrackerVtx::NRooTrackerVtx(){
   NFfirststep = new Int_t[kNFMaxNucleonVert];
 
   NFecms2 = new Float_t[kNFMaxNucleonSteps];
+  NFProb = new Float_t[kNFMaxNucleonSteps];
+#endif
   GeneratorName = new TString("NEUT");
 }
 
@@ -58,6 +73,7 @@ NRooTrackerVtx::~NRooTrackerVtx(){
   if(NEipvert) { delete [] NEipvert; }
   if(NEiverti) { delete [] NEiverti; }
   if(NEivertf) { delete [] NEivertf; }
+#ifdef HAVE_NUCLEON_FSI_TRACKING
   if(NFiflag) { delete [] NFiflag; }
   if(NFx) { delete [] NFx; }
   if(NFy) { delete [] NFy; }
@@ -68,6 +84,8 @@ NRooTrackerVtx::~NRooTrackerVtx(){
   if(NFe) { delete [] NFe; }
   if(NFfirststep) { delete [] NFfirststep; }
   if(NFecms2) { delete [] NFecms2; }
+  if(NFProb) { delete [] NFProb; }
+#endif
   if(GeneratorName){ delete GeneratorName; }
 }
 
@@ -78,30 +96,31 @@ void NRooTrackerVtx::Reset(){
   EvtXSec = 0;
   EvtDXSec = 0;
   EvtWght = 0;
+  NEntriesInFile = 0;
   EvtProb = 0;
-  PGUtils::ClearArray(EvtVtx);
+  Utils::ClearArray(EvtVtx);
 
   StdHepN = 0;
 
-  PGUtils::ClearPointer(StdHepPdg,kNStdHepNPmax);
-  PGUtils::ClearPointer(StdHepStatus,kNStdHepNPmax);
-  PGUtils::ClearArray2D(StdHepX4);
-  PGUtils::ClearArray2D(StdHepP4);
-  PGUtils::ClearArray2D(StdHepPolz);
-  PGUtils::ClearPointer(StdHepFd,kNStdHepNPmax);
-  PGUtils::ClearPointer(StdHepLd,kNStdHepNPmax);
-  PGUtils::ClearPointer(StdHepFm,kNStdHepNPmax);
-  PGUtils::ClearPointer(StdHepLm,kNStdHepNPmax);
+  Utils::ClearPointer(StdHepPdg,kNStdHepNPmax);
+  Utils::ClearPointer(StdHepStatus,kNStdHepNPmax);
+  Utils::ClearArray2D(StdHepX4);
+  Utils::ClearArray2D(StdHepP4);
+  Utils::ClearArray2D(StdHepPolz);
+  Utils::ClearPointer(StdHepFd,kNStdHepNPmax);
+  Utils::ClearPointer(StdHepLd,kNStdHepNPmax);
+  Utils::ClearPointer(StdHepFm,kNStdHepNPmax);
+  Utils::ClearPointer(StdHepLm,kNStdHepNPmax);
 
   IsBound = 0;
 
   NEnvc = 0;
 
-  PGUtils::ClearPointer(NEipvc,kNEmaxvc);
-  PGUtils::ClearArray2D(NEpvc);
-  PGUtils::ClearPointer(NEiorgvc,kNEmaxvc);
-  PGUtils::ClearPointer(NEiflgvc,kNEmaxvc);
-  PGUtils::ClearPointer(NEicrnvc,kNEmaxvc);
+  Utils::ClearPointer(NEipvc,kNEmaxvc);
+  Utils::ClearArray2D(NEpvc);
+  Utils::ClearPointer(NEiorgvc,kNEmaxvc);
+  Utils::ClearPointer(NEiflgvc,kNEmaxvc);
+  Utils::ClearPointer(NEicrnvc,kNEmaxvc);
 
   NEcrsx = 0;
   NEcrsy = 0;
@@ -110,32 +129,33 @@ void NRooTrackerVtx::Reset(){
 
   NEnvert = 0;
 
-  PGUtils::ClearArray2D(NEposvert);
-  PGUtils::ClearPointer(NEiflgvert,kNEmaxvert);
+  Utils::ClearArray2D(NEposvert);
+  Utils::ClearPointer(NEiflgvert,kNEmaxvert);
 
   NEnvcvert = 0;
-  PGUtils::ClearArray2D(NEdirvert);
-  PGUtils::ClearPointer(NEabspvert,kNEmaxvertp);
-  PGUtils::ClearPointer(NEabstpvert,kNEmaxvertp);
-  PGUtils::ClearPointer(NEipvert,kNEmaxvertp);
-  PGUtils::ClearPointer(NEiverti,kNEmaxvertp);
-  PGUtils::ClearPointer(NEivertf,kNEmaxvertp);
-
+  Utils::ClearArray2D(NEdirvert);
+  Utils::ClearPointer(NEabspvert,kNEmaxvertp);
+  Utils::ClearPointer(NEabstpvert,kNEmaxvertp);
+  Utils::ClearPointer(NEipvert,kNEmaxvertp);
+  Utils::ClearPointer(NEiverti,kNEmaxvertp);
+  Utils::ClearPointer(NEivertf,kNEmaxvertp);
+#ifdef HAVE_NUCLEON_FSI_TRACKING
   NFnvert = 0;
-  PGUtils::ClearPointer(NFiflag,kNFMaxNucleonVert);
-  PGUtils::ClearPointer(NFx,kNFMaxNucleonVert);
-  PGUtils::ClearPointer(NFy,kNFMaxNucleonVert);
-  PGUtils::ClearPointer(NFz,kNFMaxNucleonVert);
-  PGUtils::ClearPointer(NFpx,kNFMaxNucleonVert);
-  PGUtils::ClearPointer(NFpy,kNFMaxNucleonVert);
-  PGUtils::ClearPointer(NFpz,kNFMaxNucleonVert);
-  PGUtils::ClearPointer(NFe,kNFMaxNucleonVert);
-  PGUtils::ClearPointer(NFfirststep,kNFMaxNucleonVert);
+  Utils::ClearPointer(NFiflag,kNFMaxNucleonVert);
+  Utils::ClearPointer(NFx,kNFMaxNucleonVert);
+  Utils::ClearPointer(NFy,kNFMaxNucleonVert);
+  Utils::ClearPointer(NFz,kNFMaxNucleonVert);
+  Utils::ClearPointer(NFpx,kNFMaxNucleonVert);
+  Utils::ClearPointer(NFpy,kNFMaxNucleonVert);
+  Utils::ClearPointer(NFpz,kNFMaxNucleonVert);
+  Utils::ClearPointer(NFe,kNFMaxNucleonVert);
+  Utils::ClearPointer(NFfirststep,kNFMaxNucleonVert);
 
   NFnstep = 0;
 
-  PGUtils::ClearPointer(NFecms2,kNFMaxNucleonSteps);
-
+  Utils::ClearPointer(NFecms2,kNFMaxNucleonSteps);
+  Utils::ClearPointer(NFProb,kNFMaxNucleonSteps);
+#endif
   (*GeneratorName) = "NEUT";
 }
 
@@ -143,18 +163,22 @@ void NRooTrackerVtx::AddBranches(TTree* &tree,
   bool SaveIsBound,
   bool SaveStruckNucleonPDG){
 
-  std::string NStdHepNPmaxstr = PGUtils::int2str(kNStdHepNPmax);
-  std::string NEmaxvcstr = PGUtils::int2str(kNEmaxvc);
-  std::string NEmaxvertstr = PGUtils::int2str(kNEmaxvert);
-  std::string NEmaxvertpstr = PGUtils::int2str(kNEmaxvertp);
-  std::string NFMaxNucleonVert = PGUtils::int2str(kNFMaxNucleonVert);
-  std::string NFMaxNucleonSteps = PGUtils::int2str(kNFMaxNucleonSteps);
+  std::string NStdHepNPmaxstr = Utils::int2str(kNStdHepNPmax);
+  std::string NEmaxvcstr = Utils::int2str(kNEmaxvc);
+  std::string NEmaxvertstr = Utils::int2str(kNEmaxvert);
+  std::string NEmaxvertpstr = Utils::int2str(kNEmaxvertp);
+
+#ifdef HAVE_NUCLEON_FSI_TRACKING
+  std::string NFMaxNucleonVert = Utils::int2str(kNFMaxNucleonVert);
+  std::string NFMaxNucleonSteps = Utils::int2str(kNFMaxNucleonSteps);
+#endif
 
   tree->Branch("EvtCode", &EvtCode);
   tree->Branch("EvtNum", &EvtNum,"EvtNum/I");
   tree->Branch("EvtXSec", &EvtXSec,"EvtXSec/D");
   tree->Branch("EvtDXSec", &EvtDXSec,"EvtDXSec/D");
   tree->Branch("EvtWght", &EvtWght,"EvtWght/D");
+  tree->Branch("NEntriesInFile", &NEntriesInFile, "NEntriesInFile/D");
   tree->Branch("EvtProb", &EvtProb,"EvtProb/D");
   tree->Branch("EvtVtx", EvtVtx,"EvtVtx[4]/D");
   tree->Branch("StdHepN", &StdHepN,"StdHepN/I");
@@ -196,6 +220,7 @@ void NRooTrackerVtx::AddBranches(TTree* &tree,
   tree->Branch("NEipvert", NEipvert,"NEipvert[NEnvcvert]/I");
   tree->Branch("NEiverti", NEiverti,"NEiverti[NEnvcvert]/I");
   tree->Branch("NEivertf", NEivertf,"NEivertf[NEnvcvert]/I");
+#ifdef HAVE_NUCLEON_FSI_TRACKING
   tree->Branch("NFnvert", &NFnvert,"NFnvert/I");
   tree->Branch("NFiflag", NFiflag,"NFiflag[NFnvert]/I");
   tree->Branch("NFx", NFx,"NFx[NFnvert]/F");
@@ -208,8 +233,9 @@ void NRooTrackerVtx::AddBranches(TTree* &tree,
   tree->Branch("NFfirststep", NFfirststep,"NFfirststep[NFnvert]/I");
   tree->Branch("NFnstep", &NFnstep,"NFnstep/I");
   tree->Branch("NFecms2", NFecms2,"NFecms2[NFnstep]/F");
+  tree->Branch("NFProb",NFProb,"NFProb[NFnstep]/F");
+#endif
   tree->Branch("GeneratorName", &GeneratorName);
-
 }
 
 NRooTrackerVtxB::NRooTrackerVtxB(){
@@ -233,9 +259,9 @@ void NRooTrackerVtxB::Reset(){
 
   StdHepN = 0;
 
-  PGUtils::ClearPointer(StdHepPdg,kNStdHepNPmax);
-  PGUtils::ClearPointer(StdHepStatus,kNStdHepNPmax);
-  PGUtils::ClearArray2D(StdHepP4);
+  Utils::ClearPointer(StdHepPdg,kNStdHepNPmax);
+  Utils::ClearPointer(StdHepStatus,kNStdHepNPmax);
+  Utils::ClearArray2D(StdHepP4);
 
   IsBound = 0;
   StruckNucleonPDG = 0;
@@ -246,7 +272,7 @@ void NRooTrackerVtxB::AddBranches(TTree* &tree,
   bool SaveIsBound,
   bool SaveStruckNucleonPDG){
 
-  std::string NStdHepNPmaxstr = PGUtils::int2str(kNStdHepNPmax);
+  std::string NStdHepNPmaxstr = Utils::int2str(kNStdHepNPmax);
 
   tree->Branch("EvtCode", &EvtCode);
   tree->Branch("EvtNum", &EvtNum,"EvtNum/I");
