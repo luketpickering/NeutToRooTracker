@@ -1,4 +1,6 @@
 CXX := g++
+CC := gcc
+
 RCINT := rootcint
 RC := root-config
 
@@ -70,7 +72,7 @@ ROOTCHECK:
 
 $(LIBUTILS):
 	mkdir -p $(UTILS_BASE)/build
-	cd $(UTILS_BASE)/build; cmake ../; $(MAKE) install -j4
+	cd $(UTILS_BASE)/build; cmake ../ -DCMAKE_C_COMPILER=`which $(CC)` -DCMAKE_CXX_COMPILER=`which $(CXX)`; $(MAKE) install -j4
 
 #If the normal in source NEUT build process has been used then this is the correct target to build
 $(TARGET)_neutbuild: $(TARGETSRC) $(TOBJO) $(NEUTDEPO) $(NEUTCHECKO) $(LIBUTILS)
