@@ -96,6 +96,7 @@ void NRooTrackerVtx::Reset(){
   EvtXSec = 0;
   EvtDXSec = 0;
   EvtWght = 0;
+  EvtHistWght = 0;
   NEntriesInFile = 0;
   EvtProb = 0;
   Utils::ClearArray(EvtVtx);
@@ -178,6 +179,7 @@ void NRooTrackerVtx::AddBranches(TTree* &tree,
   tree->Branch("EvtXSec", &EvtXSec,"EvtXSec/D");
   tree->Branch("EvtDXSec", &EvtDXSec,"EvtDXSec/D");
   tree->Branch("EvtWght", &EvtWght,"EvtWght/D");
+  tree->Branch("EvtHistWght", &EvtHistWght,"EvtHistWght/D");
   tree->Branch("NEntriesInFile", &NEntriesInFile, "NEntriesInFile/D");
   tree->Branch("EvtProb", &EvtProb,"EvtProb/D");
   tree->Branch("EvtVtx", EvtVtx,"EvtVtx[4]/D");

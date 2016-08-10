@@ -86,7 +86,7 @@ public:
 ///A subclass of NRooTrackerVtxB that adds additional output information.
 ///
 ///\warning None of this information is currently filled.
-///it is left as an excercise to the user to add this in.
+///it is left as an exercise to the user to add this in.
 class NRooTrackerVtx : public NRooTrackerVtxB {
 
 #ifdef HAVE_NUCLEON_FSI_TRACKING
@@ -126,6 +126,8 @@ public:
   ///Any files that do not contain the neccessary histograms will recieve a
   ///EvtWght of 0
   Double_t EvtWght;
+  ///The event rate weight
+  Double_t EvtHistWght;
   ///\brief Used in conjunction with EvtWght to correctly normalise final state
   ///histograms
   ///\details This is modified for each new input file read by the TChain so can
